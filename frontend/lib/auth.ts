@@ -13,6 +13,10 @@ export interface AuthState {
 
 export const authService = {
   register: (email: string, password: string, name: string): User => {
+    if (typeof window === 'undefined') {
+      throw new Error('localStorage not available');
+    }
+    
     const users = JSON.parse(localStorage.getItem('users') || '[]');
     
     // Check if user already exists
@@ -44,33 +48,51 @@ export const authService = {
   },
   
   login: (email: string, password: string): User => {
+    if (typeof window === 'undefined') {
+      throw new Error('localStorage not available');
+    }
+    
     const users = JSON.parse(localStorage.getItem('users') || '[]');
     const passwords = JSON.parse(localStorage.getItem('passwords') || '{}');
     
     const user = users.find((u: any) => u.email === email);
     
-    if (!user || passwords[email] !== password) {
-      throw new Error('Invalid email or password');
+    if (!user) {
+      throw new Error('No account found with this email. Please sign up first.');
+    }
+    
+    if (passwords[email] !== password) {
+      throw new Error('Invalid password');
     }
     
     // Update last login
     user.last_login_date = new Date().toISOString();
-    localStorage.setItem('users', JSON.stringify(users));
+    const updatedUsers = users.map((u: User) => u.id === user.id ? user : u);
+    localStorage.setItem('users', JSON.stringify(updatedUsers));
     localStorage.setItem('currentUser', JSON.stringify(user));
     
     return user;
   },
   
   logout: (): void => {
-    localStorage.removeItem('currentUser');
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('currentUser');
+    }
   },
   
   getCurrentUser: (): User | null => {
+    if (typeof window === 'undefined') {
+      return null;
+    }
     const userStr = localStorage.getItem('currentUser');
     return userStr ? JSON.parse(userStr) : null;
   },
   
   isAuthenticated: (): boolean => {
+    if (typeof window === 'undefined') {
+      return false;
+    }
     return !!localStorage.getItem('currentUser');
   },
 };
+

@@ -33,7 +33,7 @@ export default function LoginForm() {
     <Card className="w-full max-w-md">
       <CardHeader>
         <CardTitle>Welcome back</CardTitle>
-        <CardDescription>Sign in to your CareerIQ account</CardDescription>
+        <CardDescription>Sign in to your CareerIQ account. Don't have an account? Switch to the Sign Up tab.</CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
@@ -76,3 +76,4 @@ export default function LoginForm() {
     </Card>
   );
 }
+
