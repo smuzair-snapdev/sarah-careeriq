@@ -23,10 +23,11 @@ const STEPS = [
 ];
 
 export default function ProfileSetup() {
-  const { user } = useAuth();
+  const { user, isLoaded, getToken } = useAuth();
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
   
   // Form state
   const [graduationYear, setGraduationYear] = useState('');
@@ -46,23 +47,46 @@ export default function ProfileSetup() {
   const [salaryPackage, setSalaryPackage] = useState('');
 
   useEffect(() => {
-    if (user) {
-      const existingProfile = profileService.getProfile(user.id);
-      if (existingProfile) {
-        // Load existing profile data
-        setGraduationYear(existingProfile.graduation_year?.toString() || '');
-        setFieldOfStudy(existingProfile.field_of_study || '');
-        setAge(existingProfile.age?.toString() || '');
-        setCurrentCompany(existingProfile.current_company || '');
-        setCurrentTitle(existingProfile.current_title || '');
-        setIndustry(existingProfile.industry || '');
-        setTechnicalSkills(existingProfile.technical_skills || []);
-        setSoftSkills(existingProfile.soft_skills || []);
-        setCareerProgression(existingProfile.career_progression || []);
-        setSalaryPackage(existingProfile.salary_package?.toString() || '');
+    const fetchProfile = async () => {
+      if (user) {
+        try {
+          const token = await getToken();
+          if (!token) return;
+
+          const existingProfile = await profileService.getProfileAsync(token);
+          if (existingProfile) {
+            // Load existing profile data
+            setGraduationYear(existingProfile.graduation_year?.toString() || '');
+            setFieldOfStudy(existingProfile.field_of_study || '');
+            setAge(existingProfile.age?.toString() || '');
+            setCurrentCompany(existingProfile.current_company || '');
+            setCurrentTitle(existingProfile.current_title || '');
+            setIndustry(existingProfile.industry || '');
+            setTechnicalSkills(existingProfile.technical_skills || []);
+            setSoftSkills(existingProfile.soft_skills || []);
+            setCareerProgression(existingProfile.career_progression || []);
+            setSalaryPackage(existingProfile.salary_package?.toString() || '');
+          }
+        } catch (err) {
+          console.error("Error fetching profile:", err);
+        } finally {
+          setLoading(false);
+        }
       }
-    }
-  }, [user]);
+    };
+    fetchProfile();
+  }, [user, getToken]);
+
+  if (!isLoaded) {
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-transparent border-t-indigo-600 border-r-purple-600 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-lg font-medium bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleNext = () => {
     setError('');
@@ -94,10 +118,11 @@ export default function ProfileSetup() {
           setError('Please enter a valid graduation year');
           return false;
         }
-        if (userAge < 30 || userAge > 50) {
-          setError('This platform is designed for professionals aged 30-50');
-          return false;
-        }
+        // Removed age restriction for testing
+        // if (userAge < 30 || userAge > 50) {
+        //   setError('This platform is designed for professionals aged 30-50');
+        //   return false;
+        // }
         return true;
       case 2:
         if (!currentCompany || !currentTitle || !industry) {
@@ -135,30 +160,38 @@ export default function ProfileSetup() {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!user) return;
 
-    const profileData: Partial<Profile> = {
-      graduation_year: parseInt(graduationYear),
-      field_of_study: fieldOfStudy,
-      age: parseInt(age),
-      current_company: currentCompany,
-      current_title: currentTitle,
-      industry,
-      technical_skills: technicalSkills,
-      soft_skills: softSkills,
-      career_progression: careerProgression,
-      salary_package: parseInt(salaryPackage),
-    };
+    try {
+      const token = await getToken();
+      if (!token) {
+        setError("Authentication failed. Please try again.");
+        return;
+      }
 
-    const existingProfile = profileService.getProfile(user.id);
-    if (existingProfile) {
-      profileService.updateProfile(user.id, profileData);
-    } else {
-      profileService.createProfile(user.id, profileData);
+      const profileData: Partial<Profile> = {
+        graduation_year: parseInt(graduationYear),
+        field_of_study: fieldOfStudy,
+        age: parseInt(age),
+        current_company: currentCompany,
+        current_title: currentTitle,
+        industry,
+        technical_skills: technicalSkills,
+        soft_skills: softSkills,
+        career_progression: careerProgression,
+        salary_package: parseInt(salaryPackage),
+      };
+
+      // Backend `update_profile` supports upsert=True and invalidates old reports
+      await profileService.updateProfileAsync(token, profileData);
+      
+      // Redirect to benchmark page which will auto-generate new benchmark and plan
+      router.push('/dashboard/benchmark');
+    } catch (err) {
+      console.error("Error saving profile:", err);
+      setError("Failed to save profile. Please try again.");
     }
-
-    router.push('/dashboard');
   };
 
   const toggleSkill = (skill: string, type: 'technical' | 'soft') => {
@@ -248,10 +281,8 @@ export default function ProfileSetup() {
                 placeholder="35"
                 value={age}
                 onChange={(e) => setAge(e.target.value)}
-                min="30"
-                max="50"
               />
-              <p className="text-sm text-gray-500">This platform is designed for professionals aged 30-50</p>
+              <p className="text-sm text-gray-500">This platform is designed for professionals aged 30-50 (restriction lifted for demo)</p>
             </div>
           </div>
         );
@@ -496,27 +527,63 @@ export default function ProfileSetup() {
   const progressPercentage = (currentStep / STEPS.length) * 100;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 py-8">
-      <div className="max-w-2xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 p-4 py-8">
+      <div className="max-w-4xl mx-auto">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">Complete Your Profile</h1>
+          <p className="text-lg text-gray-600">Help us provide personalized AI-powered career insights</p>
+        </div>
+        
+        {/* Visual Step Indicator */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Complete Your Profile</h1>
-          <p className="text-gray-600">Help us understand your career to provide personalized insights</p>
-        </div>
-        
-        <div className="mb-6">
-          <div className="flex justify-between mb-2">
-            <span className="text-sm font-medium text-gray-700">Step {currentStep} of {STEPS.length}</span>
-            <span className="text-sm font-medium text-gray-700">{Math.round(progressPercentage)}%</span>
+          <div className="flex justify-between items-center mb-6">
+            {STEPS.map((step, index) => (
+              <div key={step.id} className="flex-1 flex items-center">
+                <div className="flex flex-col items-center flex-1">
+                  <div
+                    className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 shadow-md ${
+                      currentStep > step.id
+                        ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white'
+                        : currentStep === step.id
+                        ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white scale-110 ring-4 ring-indigo-200'
+                        : 'bg-white text-gray-400 border-2 border-gray-300'
+                    }`}
+                  >
+                    {currentStep > step.id ? '✓' : step.id}
+                  </div>
+                  <div className="text-xs font-medium mt-2 text-center hidden sm:block max-w-[80px]">
+                    <div className={currentStep === step.id ? 'text-indigo-600 font-semibold' : currentStep > step.id ? 'text-green-600' : 'text-gray-500'}>
+                      {step.title}
+                    </div>
+                  </div>
+                </div>
+                {index < STEPS.length - 1 && (
+                  <div className="flex-1 h-1 mx-2">
+                    <div
+                      className={`h-full rounded transition-all duration-500 ${
+                        currentStep > step.id
+                          ? 'bg-gradient-to-r from-green-500 to-emerald-500'
+                          : 'bg-gray-300'
+                      }`}
+                    ></div>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
-          <Progress value={progressPercentage} className="h-2" />
+          <div className="flex justify-between mb-2">
+            <span className="text-sm font-semibold text-gray-700">{STEPS[currentStep - 1].description}</span>
+            <span className="text-sm font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">{Math.round(progressPercentage)}% Complete</span>
+          </div>
+          <Progress value={progressPercentage} className="h-3" />
         </div>
         
-        <Card>
-          <CardHeader>
-            <CardTitle>{STEPS[currentStep - 1].title}</CardTitle>
-            <CardDescription>{STEPS[currentStep - 1].description}</CardDescription>
+        <Card className="shadow-xl border-0">
+          <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50">
+            <CardTitle className="text-2xl">{STEPS[currentStep - 1].title}</CardTitle>
+            <CardDescription className="text-base">{STEPS[currentStep - 1].description}</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-6 pt-6">
             {error && (
               <Alert variant="destructive">
                 <AlertDescription>{error}</AlertDescription>

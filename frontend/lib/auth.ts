@@ -1,9 +1,12 @@
+// This file is kept for type compatibility but implementation is now handled by Clerk
+// The shape of 'User' should match what components expect from useAuth()
+
 export interface User {
   id: string;
   email: string;
   name: string;
-  created_date: string;
-  last_login_date: string;
+  created_date?: string; // Optional now as Clerk handles this
+  last_login_date?: string; // Optional now as Clerk handles this
 }
 
 export interface AuthState {
@@ -11,88 +14,26 @@ export interface AuthState {
   isAuthenticated: boolean;
 }
 
+// Deprecated authService - no longer used with Clerk
 export const authService = {
-  register: (email: string, password: string, name: string): User => {
-    if (typeof window === 'undefined') {
-      throw new Error('localStorage not available');
-    }
-    
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    
-    // Check if user already exists
-    if (users.find((u: any) => u.email === email)) {
-      throw new Error('User already exists');
-    }
-    
-    const newUser: User = {
-      id: crypto.randomUUID(),
-      email,
-      name,
-      created_date: new Date().toISOString(),
-      last_login_date: new Date().toISOString(),
-    };
-    
-    // Store user and password separately
-    users.push(newUser);
-    localStorage.setItem('users', JSON.stringify(users));
-    
-    // Store password (in real app, this would be hashed)
-    const passwords = JSON.parse(localStorage.getItem('passwords') || '{}');
-    passwords[email] = password;
-    localStorage.setItem('passwords', JSON.stringify(passwords));
-    
-    // Set current user
-    localStorage.setItem('currentUser', JSON.stringify(newUser));
-    
-    return newUser;
+  register: async (email: string, password: string, name: string): Promise<User> => {
+    throw new Error("Use Clerk SignUp component");
   },
   
-  login: (email: string, password: string): User => {
-    if (typeof window === 'undefined') {
-      throw new Error('localStorage not available');
-    }
-    
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const passwords = JSON.parse(localStorage.getItem('passwords') || '{}');
-    
-    const user = users.find((u: any) => u.email === email);
-    
-    if (!user) {
-      throw new Error('No account found with this email. Please sign up first.');
-    }
-    
-    if (passwords[email] !== password) {
-      throw new Error('Invalid password');
-    }
-    
-    // Update last login
-    user.last_login_date = new Date().toISOString();
-    const updatedUsers = users.map((u: User) => u.id === user.id ? user : u);
-    localStorage.setItem('users', JSON.stringify(updatedUsers));
-    localStorage.setItem('currentUser', JSON.stringify(user));
-    
-    return user;
+  login: async (email: string, password: string): Promise<User> => {
+    throw new Error("Use Clerk SignIn component");
   },
   
   logout: (): void => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('currentUser');
-    }
+    // No-op
   },
   
   getCurrentUser: (): User | null => {
-    if (typeof window === 'undefined') {
-      return null;
-    }
-    const userStr = localStorage.getItem('currentUser');
-    return userStr ? JSON.parse(userStr) : null;
+    return null;
   },
   
   isAuthenticated: (): boolean => {
-    if (typeof window === 'undefined') {
-      return false;
-    }
-    return !!localStorage.getItem('currentUser');
+    return false;
   },
 };
 

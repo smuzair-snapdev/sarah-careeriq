@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { careerPlanService, CareerPlan, Recommendation } from '@/lib/career-plan';
+import { profileService } from '@/lib/profile';
+import { exportCareerPlanToPDF } from '@/lib/pdf-export';
 import DashboardNav from '@/components/DashboardNav';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,56 +22,181 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import Link from 'next/link';
+import { Download } from 'lucide-react';
 
 export default function CareerPlanPage() {
-  const { user } = useAuth();
+  const { user, getToken } = useAuth();
   const router = useRouter();
   const [plan, setPlan] = useState<CareerPlan | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedRec, setSelectedRec] = useState<Recommendation | null>(null);
   const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      const existingPlan = careerPlanService.getPlan(user.id);
-      
-      if (!existingPlan) {
-        router.push('/dashboard/benchmark');
-        return;
-      }
-      
-      setPlan(existingPlan);
-      setLoading(false);
-    }
-  }, [user, router]);
+    const fetchPlan = async () => {
+      if (user) {
+        try {
+          const token = await getToken();
+          if (!token) return;
 
-  const handleToggleComplete = (recommendationId: string, currentStatus: string) => {
+          const existingPlan = await careerPlanService.getPlan(token);
+          setPlan(existingPlan);
+        } catch (error) {
+          console.error("Failed to load plan", error);
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+    fetchPlan();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  const handleGeneratePlan = async () => {
+    if (!user) return;
+    
+    try {
+      setGenerating(true);
+      const token = await getToken();
+      if (!token) return;
+
+      const newPlan = await careerPlanService.generatePlan(token);
+      setPlan(newPlan);
+    } catch (error) {
+      console.error("Failed to generate plan", error);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleToggleComplete = async (recommendationId: string, currentStatus: string) => {
     if (!user || !plan) return;
+    const token = await getToken();
+    if (!token) return;
+
+    if (!recommendationId || recommendationId === 'undefined') {
+      console.error('Invalid recommendation ID');
+      return;
+    }
 
     const newStatus = currentStatus === 'completed' ? 'active' : 'completed';
-    const updatedPlan = careerPlanService.updateRecommendation(user.id, recommendationId, {
-      status: newStatus,
-    });
-    setPlan(updatedPlan);
+    try {
+      const updatedRec = await careerPlanService.updateRecommendation(token, recommendationId, {
+        status: newStatus as 'active' | 'completed' | 'dismissed',
+      });
+      
+      // Update local state to reflect change immediately
+      const updatedPlan = { ...plan };
+      const recIndex = updatedPlan.recommendations.findIndex(r => r.recommendation_id === recommendationId);
+      if (recIndex !== -1) {
+        updatedPlan.recommendations[recIndex] = updatedRec;
+        
+        // Update selectedRec if it's the one currently open
+        if (selectedRec && selectedRec.recommendation_id === recommendationId) {
+          setSelectedRec(updatedRec);
+        }
+
+        // Recalculate percentage locally (optional, but good for UI responsiveness)
+        const activeRecs = updatedPlan.recommendations.filter(r => r.status !== 'dismissed');
+        if (activeRecs.length > 0) {
+          const completed = activeRecs.filter(r => r.status === 'completed').length;
+          updatedPlan.overall_completion_percentage = Math.round((completed / activeRecs.length) * 100);
+        }
+      }
+      setPlan(updatedPlan);
+    } catch (error) {
+      console.error("Failed to update status", error);
+    }
   };
 
-  const handleDismiss = (recommendationId: string) => {
+  const handleDismiss = async (recommendationId: string) => {
     if (!user || !plan) return;
+    const token = await getToken();
+    if (!token) return;
 
-    const updatedPlan = careerPlanService.updateRecommendation(user.id, recommendationId, {
-      status: 'dismissed',
-    });
-    setPlan(updatedPlan);
-    setSelectedRec(null);
+    try {
+      const updatedRec = await careerPlanService.updateRecommendation(token, recommendationId, {
+        status: 'dismissed',
+      });
+
+       // Update local state
+       const updatedPlan = { ...plan };
+       const recIndex = updatedPlan.recommendations.findIndex(r => r.recommendation_id === recommendationId);
+       if (recIndex !== -1) {
+         updatedPlan.recommendations[recIndex] = updatedRec;
+         // Recalculate percentage locally
+        const activeRecs = updatedPlan.recommendations.filter(r => r.status !== 'dismissed');
+        if (activeRecs.length > 0) {
+          const completed = activeRecs.filter(r => r.status === 'completed').length;
+          updatedPlan.overall_completion_percentage = Math.round((completed / activeRecs.length) * 100);
+        } else {
+             updatedPlan.overall_completion_percentage = 0;
+        }
+       }
+       setPlan(updatedPlan);
+       setSelectedRec(null);
+    } catch (error) {
+      console.error("Failed to dismiss", error);
+    }
   };
 
-  const handleUpdateNotes = (recommendationId: string, notes: string) => {
+  const handleUpdateNotes = async (recommendationId: string, notes: string) => {
     if (!user || !plan) return;
-
-    const updatedPlan = careerPlanService.updateRecommendation(user.id, recommendationId, {
+    const token = await getToken();
+    if (!token) return;
+    
+    // Optimistic update for notes input field to avoid lag
+    // In a real app we'd debounce the API call
+    const updatedPlan = { ...plan };
+    const recIndex = updatedPlan.recommendations.findIndex(r => r.recommendation_id === recommendationId);
+    if (recIndex !== -1) {
+        updatedPlan.recommendations[recIndex].user_notes = notes;
+        setPlan(updatedPlan);
+        
+        // Also update selectedRec so the textarea doesn't lag/reset
+        if (selectedRec && selectedRec.recommendation_id === recommendationId) {
+          setSelectedRec({ ...selectedRec, user_notes: notes });
+        }
+    }
+    
+    // We'll just update state locally for typing smoothness,
+    // but actual save would ideally happen onBlur or debounced.
+    // For MVP, we can trigger the API call here but not wait for it to update UI
+    careerPlanService.updateRecommendation(token, recommendationId, {
       user_notes: notes,
-    });
-    setPlan(updatedPlan);
+    }).catch(e => console.error("Failed to save notes", e));
+  };
+
+  const handleExportPDF = async () => {
+    if (!plan || !user) return;
+    
+    try {
+      const token = await getToken();
+      if (!token) return;
+      
+      const profile = await profileService.getProfileAsync(token);
+      const userName = profile ? `${profile.first_name} ${profile.last_name}` : 'User';
+      const industry = profile?.industry || 'Technology';
+      
+      exportCareerPlanToPDF({
+        recommendations: plan.recommendations.map(rec => ({
+          title: rec.title,
+          description: rec.description,
+          priority: rec.priority,
+          timeline: rec.timeline
+        })),
+        milestones: plan.milestones?.map(milestone => ({
+          title: milestone.title,
+          description: milestone.description,
+          timeline: milestone.timeline,
+          status: milestone.status
+        })) || [],
+        created_at: plan.generation_date
+      }, userName, industry);
+    } catch (error) {
+      console.error("Error exporting PDF:", error);
+    }
   };
 
   if (loading) {
@@ -93,8 +220,10 @@ export default function CareerPlanPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">No Career Plan Available</h2>
-            <p className="text-gray-600 mb-6">Generate your benchmark report first</p>
-            <Button onClick={() => router.push('/dashboard/benchmark')}>View Benchmark Report</Button>
+            <p className="text-gray-600 mb-6">Create your personalized career plan with AI</p>
+            <Button onClick={handleGeneratePlan} disabled={generating}>
+              {generating ? 'Generating Plan...' : 'Generate Career Plan'}
+            </Button>
           </div>
         </div>
       </>
@@ -129,9 +258,19 @@ export default function CareerPlanPage() {
               Generated on {new Date(plan.generation_date).toLocaleDateString()}
             </p>
           </div>
-          <Button asChild variant="outline">
-            <Link href="/dashboard/benchmark">View Benchmark Report</Link>
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={handleExportPDF}
+              className="bg-white hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Export PDF
+            </Button>
+            <Button asChild variant="outline" className="bg-white">
+              <Link href="/dashboard/benchmark">View Benchmark Report</Link>
+            </Button>
+          </div>
         </div>
 
         {/* Progress Overview */}
@@ -189,9 +328,9 @@ export default function CareerPlanPage() {
 
         {/* Recommendations List */}
         <div className="space-y-4">
-          {filteredRecommendations.map((rec) => (
-            <Card 
-              key={rec.recommendation_id} 
+          {filteredRecommendations.map((rec, index) => (
+            <Card
+              key={rec.recommendation_id || `rec-${index}`}
               className={rec.status === 'completed' ? 'opacity-75 bg-gray-50' : ''}
             >
               <CardHeader>
@@ -264,22 +403,21 @@ export default function CareerPlanPage() {
                   <span className="text-2xl">{categoryIcons[selectedRec.category]}</span>
                   {selectedRec.title}
                 </DialogTitle>
-                <DialogDescription>
-                  <div className="flex gap-2 mt-2">
-                    <Badge className={priorityColors[selectedRec.priority_level]}>
-                      {selectedRec.priority_level} priority
-                    </Badge>
-                    <Badge variant="outline">
-                      {selectedRec.category}
-                    </Badge>
-                    {selectedRec.status === 'completed' && (
-                      <Badge className="bg-green-100 text-green-800">
-                        Completed
-                      </Badge>
-                    )}
-                  </div>
-                </DialogDescription>
               </DialogHeader>
+              
+              <div className="flex gap-2 mb-4">
+                <Badge className={priorityColors[selectedRec.priority_level]}>
+                  {selectedRec.priority_level} priority
+                </Badge>
+                <Badge variant="outline">
+                  {selectedRec.category}
+                </Badge>
+                {selectedRec.status === 'completed' && (
+                  <Badge className="bg-green-100 text-green-800">
+                    Completed
+                  </Badge>
+                )}
+              </div>
 
               <div className="space-y-4">
                 <div>

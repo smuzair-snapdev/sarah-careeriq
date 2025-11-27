@@ -12,18 +12,30 @@ import { Progress } from '@/components/ui/progress';
 import Link from 'next/link';
 
 export default function ProfilePage() {
-  const { user } = useAuth();
+  const { user, getToken } = useAuth();
   const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (user) {
-      const userProfile = profileService.getProfile(user.id);
-      setProfile(userProfile);
-      setLoading(false);
-    }
-  }, [user]);
+    const fetchProfile = async () => {
+      if (user) {
+        try {
+          const token = await getToken();
+          if (!token) return;
+
+          const userProfile = await profileService.getProfileAsync(token);
+          setProfile(userProfile);
+        } catch (err) {
+          console.error("Failed to load profile", err);
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+    fetchProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   if (loading) {
     return (
@@ -59,40 +71,58 @@ export default function ProfilePage() {
   return (
     <>
       <DashboardNav />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8 flex justify-between items-start">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">My Profile</h1>
-            <p className="text-gray-600">View and manage your professional information</p>
-          </div>
-          <Button asChild>
-            <Link href="/profile-setup">Edit Profile</Link>
-          </Button>
-        </div>
-
-        {/* Profile Completion */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Profile Completion</CardTitle>
-            <CardDescription>
-              {profile.completion_percentage < 100 
-                ? 'Complete your profile for more accurate insights'
-                : 'Your profile is complete!'
-              }
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-700">
-                {profile.completion_percentage}% Complete
-              </span>
-              {profile.completion_percentage === 100 && (
-                <Badge className="bg-green-500">Complete ✓</Badge>
-              )}
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="mb-8 flex justify-between items-start">
+            <div>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">My Profile</h1>
+              <p className="text-lg text-gray-600">View and manage your professional information</p>
             </div>
-            <Progress value={profile.completion_percentage} className="h-3" />
-          </CardContent>
-        </Card>
+            <Button asChild className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-md">
+              <Link href="/profile-setup">✏️ Edit Profile</Link>
+            </Button>
+          </div>
+
+          {/* Info Alert */}
+          <Card className="mb-6 border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-md">
+            <CardContent className="pt-6">
+              <div className="flex items-start space-x-3">
+                <span className="text-2xl">💡</span>
+                <div>
+                  <p className="font-semibold text-blue-900 mb-1">Profile Updates Trigger AI Regeneration</p>
+                  <p className="text-sm text-blue-700">
+                    When you update your profile, your <strong>Benchmark Report</strong> is automatically recalculated and your <strong>Career Plan</strong> is regenerated using AI (Gemini) with the latest data and market insights.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Profile Completion */}
+          <Card className="mb-6 bg-white shadow-lg border-0">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <span className="mr-2">📊</span> Profile Completion
+              </CardTitle>
+              <CardDescription>
+                {profile.completion_percentage < 100 
+                  ? 'Complete your profile for more accurate AI-powered insights'
+                  : 'Your profile is complete! You\'ll get the best recommendations.'
+                }
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700">
+                  {profile.completion_percentage}% Complete
+                </span>
+                {profile.completion_percentage === 100 && (
+                  <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white">Complete ✓</Badge>
+                )}
+              </div>
+              <Progress value={profile.completion_percentage} className="h-3" />
+            </CardContent>
+          </Card>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Education */}
@@ -267,16 +297,17 @@ export default function ProfilePage() {
 
         {/* Action Buttons */}
         <div className="mt-8 flex gap-4">
-          <Button asChild variant="outline" className="flex-1">
+          <Button asChild variant="outline" className="flex-1 border-indigo-200 hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50">
             <Link href="/dashboard/benchmark">
-              View Benchmark Report
+              📈 View Benchmark Report
             </Link>
           </Button>
-          <Button asChild variant="outline" className="flex-1">
+          <Button asChild variant="outline" className="flex-1 border-purple-200 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50">
             <Link href="/dashboard/plan">
-              View Career Plan
+              🎯 View Career Plan
             </Link>
           </Button>
+        </div>
         </div>
       </div>
     </>

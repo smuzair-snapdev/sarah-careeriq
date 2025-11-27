@@ -1,65 +1,36 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, authService } from '@/lib/auth';
-
-interface AuthContextType {
-  user: User | null;
-  isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name: string) => Promise<void>;
-  logout: () => void;
-  loading: boolean;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // Check if user is already logged in
-    const currentUser = authService.getCurrentUser();
-    setUser(currentUser);
-    setLoading(false);
-  }, []);
-
-  const login = async (email: string, password: string) => {
-    const user = authService.login(email, password);
-    setUser(user);
-  };
-
-  const register = async (email: string, password: string, name: string) => {
-    const user = authService.register(email, password, name);
-    setUser(user);
-  };
-
-  const logout = () => {
-    authService.logout();
-    setUser(null);
-  };
-
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isAuthenticated: !!user,
-        login,
-        register,
-        logout,
-        loading,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
-}
+import { useMemo } from "react";
+import { useAuth as useClerkAuth, useUser } from "@clerk/nextjs";
 
 export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+  const { isLoaded, userId, sessionId, getToken, signOut } = useClerkAuth();
+  const { user } = useUser();
+
+  const userObj = useMemo(() => {
+    return user ? {
+      id: user.id,
+      email: user.primaryEmailAddress?.emailAddress || "",
+      name: user.fullName || "",
+    } : null;
+  }, [user?.id, user?.primaryEmailAddress?.emailAddress, user?.fullName]);
+
+  return {
+    isLoaded,
+    userId,
+    sessionId,
+    getToken,
+    isAuthenticated: !!userId,
+    user: userObj,
+    // Legacy support / compatibility
+    loading: !isLoaded,
+    login: async () => {}, // No-op, handled by Clerk components
+    register: async () => {}, // No-op
+    logout: async () => { await signOut(); },
+  };
+}
+
+// Deprecated AuthProvider - ClerkProvider handles this now
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
 }

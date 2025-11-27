@@ -23,13 +23,16 @@ export interface Profile {
 }
 
 export const INDUSTRIES = [
+  'Software Engineering',
+  'Marketing',
+  'Sales',
+  'Product Management',
   'Technology',
   'Finance',
   'Healthcare',
   'Education',
   'Manufacturing',
   'Retail',
-  'Marketing',
   'Consulting',
   'Legal',
   'Real Estate',
@@ -69,68 +72,117 @@ export const SUGGESTED_SOFT_SKILLS = [
   'Decision Making',
 ];
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+
 export const profileService = {
-  createProfile: (userId: string, data: Partial<Profile>): Profile => {
-    const profile: Profile = {
-      profile_id: crypto.randomUUID(),
-      user_id: userId,
-      graduation_year: data.graduation_year || null,
-      field_of_study: data.field_of_study || '',
-      age: data.age || null,
-      current_company: data.current_company || '',
-      current_title: data.current_title || '',
-      industry: data.industry || '',
-      technical_skills: data.technical_skills || [],
-      soft_skills: data.soft_skills || [],
-      career_progression: data.career_progression || [],
-      salary_package: data.salary_package || null,
-      created_date: new Date().toISOString(),
-      last_modified_date: new Date().toISOString(),
-      completion_percentage: 0,
-    };
+  createProfile: async (userId: string, data: Partial<Profile>): Promise<Profile> => {
+    // Note: We assume authentication token is handled via headers in real implementation
+    // Here we just mock the call structure or use a token if passed.
+    // For frontend components, we should probably pass token as argument like other services
+    // But to maintain interface compatibility with existing code (if any sync calls remain), we'll throw error
+    // or assume token is available in a global context (not ideal) or update the signature.
+    // Given the refactor, we should update components to use async calls.
     
-    profile.completion_percentage = calculateCompletionPercentage(profile);
-    
-    const profiles = JSON.parse(localStorage.getItem('profiles') || '{}');
-    profiles[userId] = profile;
-    localStorage.setItem('profiles', JSON.stringify(profiles));
-    
-    return profile;
+    // For now, let's throw an error to force update if this is called synchronously
+    throw new Error("Use createProfileAsync with token");
+  },
+
+  createProfileAsync: async (token: string, data: Partial<Profile>): Promise<Profile> => {
+    const response = await fetch(`${API_URL}/api/v1/profile`, {
+      method: 'PUT', // Using PUT for upsert as per backend implementation
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to create profile');
+    }
+
+    const profile = await response.json();
+    return mapBackendProfileToFrontend(profile);
   },
   
   getProfile: (userId: string): Profile | null => {
-    const profiles = JSON.parse(localStorage.getItem('profiles') || '{}');
-    return profiles[userId] || null;
+     // Legacy sync method - should be deprecated
+     return null;
+  },
+
+  getProfileAsync: async (token: string): Promise<Profile | null> => {
+    try {
+      const response = await fetch(`${API_URL}/api/v1/profile`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.status === 404) {
+        return null;
+      }
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch profile');
+      }
+
+      const profile = await response.json();
+      return mapBackendProfileToFrontend(profile);
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      return null;
+    }
   },
   
   updateProfile: (userId: string, data: Partial<Profile>): Profile => {
-    const profiles = JSON.parse(localStorage.getItem('profiles') || '{}');
-    const existingProfile = profiles[userId];
-    
-    if (!existingProfile) {
-      throw new Error('Profile not found');
+     throw new Error("Use updateProfileAsync with token");
+  },
+
+  updateProfileAsync: async (token: string, data: Partial<Profile>): Promise<Profile> => {
+    const response = await fetch(`${API_URL}/api/v1/profile`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to update profile');
     }
-    
-    const updatedProfile = {
-      ...existingProfile,
-      ...data,
-      last_modified_date: new Date().toISOString(),
-    };
-    
-    updatedProfile.completion_percentage = calculateCompletionPercentage(updatedProfile);
-    
-    profiles[userId] = updatedProfile;
-    localStorage.setItem('profiles', JSON.stringify(profiles));
-    
-    return updatedProfile;
+
+    const profile = await response.json();
+    return mapBackendProfileToFrontend(profile);
   },
   
   deleteProfile: (userId: string): void => {
-    const profiles = JSON.parse(localStorage.getItem('profiles') || '{}');
-    delete profiles[userId];
-    localStorage.setItem('profiles', JSON.stringify(profiles));
+    // Not implemented in backend yet
   },
 };
+
+function mapBackendProfileToFrontend(backendProfile: any): Profile {
+  const profile = {
+    profile_id: backendProfile.id || backendProfile._id,
+    user_id: backendProfile.user_id,
+    graduation_year: backendProfile.graduation_year,
+    field_of_study: backendProfile.field_of_study,
+    age: backendProfile.age,
+    current_company: backendProfile.current_company,
+    current_title: backendProfile.current_title,
+    industry: backendProfile.industry,
+    technical_skills: backendProfile.technical_skills || [],
+    soft_skills: backendProfile.soft_skills || [],
+    career_progression: backendProfile.career_progression || [],
+    salary_package: backendProfile.salary_package,
+    created_date: backendProfile.updated_at, // Using updated_at as proxy
+    last_modified_date: backendProfile.updated_at,
+    completion_percentage: 0
+  };
+  
+  profile.completion_percentage = calculateCompletionPercentage(profile);
+  return profile;
+}
 
 function calculateCompletionPercentage(profile: Profile): number {
   let completed = 0;

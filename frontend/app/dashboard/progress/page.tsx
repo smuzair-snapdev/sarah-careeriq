@@ -12,24 +12,49 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function ProgressPage() {
-  const { user } = useAuth();
+  const { user, getToken } = useAuth();
   const router = useRouter();
   const [plan, setPlan] = useState<CareerPlan | null>(null);
   const [reports, setReports] = useState<BenchmarkReport[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchData = async () => {
+    if (user) {
+      try {
+        const token = await getToken();
+        if (!token) return;
+
+        const [existingPlan, allReports] = await Promise.all([
+          careerPlanService.getPlan(token),
+          benchmarkService.getAllReports(token)
+        ]);
+        
+        setPlan(existingPlan);
+        setReports(allReports.sort((a, b) =>
+          new Date(b.generation_date).getTime() - new Date(a.generation_date).getTime()
+        ));
+      } catch (error) {
+        console.error("Error fetching progress data:", error);
+      }
+    }
+  };
 
   useEffect(() => {
-    if (user) {
-      const existingPlan = careerPlanService.getPlan(user.id);
-      const allReports = benchmarkService.getAllReports(user.id);
-      
-      setPlan(existingPlan);
-      setReports(allReports.sort((a, b) => 
-        new Date(b.generation_date).getTime() - new Date(a.generation_date).getTime()
-      ));
+    const loadData = async () => {
+      setLoading(true);
+      await fetchData();
       setLoading(false);
-    }
-  }, [user, router]);
+    };
+    loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchData();
+    setRefreshing(false);
+  };
 
   if (loading) {
     return (
@@ -52,9 +77,14 @@ export default function ProgressPage() {
     <>
       <DashboardNav />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Progress Tracking</h1>
-          <p className="text-gray-600">Monitor your career advancement journey</p>
+        <div className="mb-8 flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Progress Tracking</h1>
+            <p className="text-gray-600">Monitor your career advancement journey</p>
+          </div>
+          <Button onClick={handleRefresh} disabled={refreshing} variant="outline">
+            {refreshing ? 'Refreshing...' : 'Refresh'}
+          </Button>
         </div>
 
         {/* Quick Stats */}
@@ -183,9 +213,11 @@ export default function ProgressPage() {
                   <div className="space-y-6">
                     {/* Completed recommendations timeline */}
                     {completedRecs
-                      .sort((a, b) => 
-                        new Date(b.completed_date || '').getTime() - new Date(a.completed_date || '').getTime()
-                      )
+                      .sort((a, b) => {
+                         const dateA = a.completed_date ? new Date(a.completed_date).getTime() : 0;
+                         const dateB = b.completed_date ? new Date(b.completed_date).getTime() : 0;
+                         return dateB - dateA;
+                      })
                       .map((rec) => (
                         <div key={rec.recommendation_id} className="relative pl-10">
                           <div className="absolute left-0 w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center">
