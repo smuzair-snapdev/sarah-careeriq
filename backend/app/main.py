@@ -17,16 +17,17 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-# Allow all origins for development to prevent CORS issues
+# CORS Configuration
 origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "*"
+    "https://sarah-careeriq.onrender.com",
+    "https://www.sarah-careeriq.onrender.com"
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Allow all origins for development
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
