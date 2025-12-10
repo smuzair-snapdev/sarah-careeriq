@@ -17,12 +17,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
 import Link from 'next/link';
-import { Download } from 'lucide-react';
+import { Download, Loader2, ArrowRight } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export default function CareerPlanPage() {
   const { user, getToken } = useAuth();
@@ -86,18 +86,15 @@ export default function CareerPlanPage() {
         status: newStatus as 'active' | 'completed' | 'dismissed',
       });
       
-      // Update local state to reflect change immediately
       const updatedPlan = { ...plan };
       const recIndex = updatedPlan.recommendations.findIndex(r => r.recommendation_id === recommendationId);
       if (recIndex !== -1) {
         updatedPlan.recommendations[recIndex] = updatedRec;
         
-        // Update selectedRec if it's the one currently open
         if (selectedRec && selectedRec.recommendation_id === recommendationId) {
           setSelectedRec(updatedRec);
         }
 
-        // Recalculate percentage locally (optional, but good for UI responsiveness)
         const activeRecs = updatedPlan.recommendations.filter(r => r.status !== 'dismissed');
         if (activeRecs.length > 0) {
           const completed = activeRecs.filter(r => r.status === 'completed').length;
@@ -120,12 +117,10 @@ export default function CareerPlanPage() {
         status: 'dismissed',
       });
 
-       // Update local state
        const updatedPlan = { ...plan };
        const recIndex = updatedPlan.recommendations.findIndex(r => r.recommendation_id === recommendationId);
        if (recIndex !== -1) {
          updatedPlan.recommendations[recIndex] = updatedRec;
-         // Recalculate percentage locally
         const activeRecs = updatedPlan.recommendations.filter(r => r.status !== 'dismissed');
         if (activeRecs.length > 0) {
           const completed = activeRecs.filter(r => r.status === 'completed').length;
@@ -146,23 +141,17 @@ export default function CareerPlanPage() {
     const token = await getToken();
     if (!token) return;
     
-    // Optimistic update for notes input field to avoid lag
-    // In a real app we'd debounce the API call
     const updatedPlan = { ...plan };
     const recIndex = updatedPlan.recommendations.findIndex(r => r.recommendation_id === recommendationId);
     if (recIndex !== -1) {
         updatedPlan.recommendations[recIndex].user_notes = notes;
         setPlan(updatedPlan);
         
-        // Also update selectedRec so the textarea doesn't lag/reset
         if (selectedRec && selectedRec.recommendation_id === recommendationId) {
           setSelectedRec({ ...selectedRec, user_notes: notes });
         }
     }
     
-    // We'll just update state locally for typing smoothness,
-    // but actual save would ideally happen onBlur or debounced.
-    // For MVP, we can trigger the API call here but not wait for it to update UI
     careerPlanService.updateRecommendation(token, recommendationId, {
       user_notes: notes,
     }).catch(e => console.error("Failed to save notes", e));
@@ -176,22 +165,17 @@ export default function CareerPlanPage() {
       if (!token) return;
       
       const profile = await profileService.getProfileAsync(token);
-      const userName = profile ? `${profile.first_name} ${profile.last_name}` : 'User';
+      const userName = 'User';
       const industry = profile?.industry || 'Technology';
       
       exportCareerPlanToPDF({
         recommendations: plan.recommendations.map(rec => ({
           title: rec.title,
           description: rec.description,
-          priority: rec.priority,
-          timeline: rec.timeline
+          priority: rec.priority_level,
+          timeline: 'Ongoing'
         })),
-        milestones: plan.milestones?.map(milestone => ({
-          title: milestone.title,
-          description: milestone.description,
-          timeline: milestone.timeline,
-          status: milestone.status
-        })) || [],
+        milestones: [],
         created_at: plan.generation_date
       }, userName, industry);
     } catch (error) {
@@ -201,32 +185,39 @@ export default function CareerPlanPage() {
 
   if (loading) {
     return (
-      <>
+      <div className="min-h-screen bg-background">
         <DashboardNav />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center">
-            <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading your career plan...</p>
+          <div className="flex flex-col items-center justify-center min-h-[400px]">
+            <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
+            <p className="text-muted-foreground">Loading your career plan...</p>
           </div>
         </div>
-      </>
+      </div>
     );
   }
 
   if (!plan) {
     return (
-      <>
+      <div className="min-h-screen bg-background">
         <DashboardNav />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">No Career Plan Available</h2>
-            <p className="text-gray-600 mb-6">Create your personalized career plan with AI</p>
-            <Button onClick={handleGeneratePlan} disabled={generating}>
-              {generating ? 'Generating Plan...' : 'Generate Career Plan'}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+          <div className="text-center max-w-2xl mx-auto">
+            <h2 className="text-2xl font-bold tracking-tight text-foreground mb-4">No Career Plan Available</h2>
+            <p className="text-muted-foreground mb-8">Generate a personalized AI career plan based on your profile and market benchmarks.</p>
+            <Button onClick={handleGeneratePlan} disabled={generating} size="lg">
+              {generating ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Generating Plan...
+                </>
+              ) : (
+                'Generate Career Plan'
+              )}
             </Button>
           </div>
         </div>
-      </>
+      </div>
     );
   }
 
@@ -235,26 +226,20 @@ export default function CareerPlanPage() {
     ? activeRecommendations
     : activeRecommendations.filter(r => r.category === filterCategory);
 
-  const categoryIcons = {
+  const categoryIcons: Record<string, string> = {
     compensation: '💰',
     skills: '🎯',
     strategic: '🚀',
   };
 
-  const priorityColors = {
-    high: 'bg-red-100 text-red-800 border-red-300',
-    medium: 'bg-amber-100 text-amber-800 border-amber-300',
-    low: 'bg-blue-100 text-blue-800 border-blue-300',
-  };
-
   return (
-    <>
+    <div className="min-h-screen bg-background pb-12">
       <DashboardNav />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8 flex justify-between items-start">
+        <div className="mb-8 flex flex-col md:flex-row md:justify-between md:items-start gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Career Advancement Plan</h1>
-            <p className="text-gray-600">
+            <h1 className="text-3xl font-bold tracking-tight text-foreground mb-1">Career Plan</h1>
+            <p className="text-muted-foreground">
               Generated on {new Date(plan.generation_date).toLocaleDateString()}
             </p>
           </div>
@@ -262,45 +247,44 @@ export default function CareerPlanPage() {
             <Button 
               variant="outline" 
               onClick={handleExportPDF}
-              className="bg-white hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50"
             >
               <Download className="w-4 h-4 mr-2" />
               Export PDF
             </Button>
-            <Button asChild variant="outline" className="bg-white">
+            <Button asChild variant="outline">
               <Link href="/dashboard/benchmark">View Benchmark Report</Link>
             </Button>
           </div>
         </div>
 
         {/* Progress Overview */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Overall Progress</CardTitle>
+        <Card className="mb-8 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Overall Progress</CardTitle>
             <CardDescription>
               {plan.overall_completion_percentage}% of recommendations completed
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Progress value={plan.overall_completion_percentage} className="h-3 mb-4" />
+            <Progress value={plan.overall_completion_percentage} className="h-2 mb-6" />
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
-                <div className="text-2xl font-bold text-gray-900">
+                <div className="text-2xl font-bold text-foreground">
                   {activeRecommendations.length}
                 </div>
-                <div className="text-sm text-gray-600">Active</div>
+                <div className="text-xs text-muted-foreground uppercase tracking-wide">Active</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-green-600">
+                <div className="text-2xl font-bold text-foreground">
                   {plan.recommendations.filter(r => r.status === 'completed').length}
                 </div>
-                <div className="text-sm text-gray-600">Completed</div>
+                <div className="text-xs text-muted-foreground uppercase tracking-wide">Completed</div>
               </div>
               <div>
-                <div className="text-2xl font-bold text-gray-400">
+                <div className="text-2xl font-bold text-muted-foreground">
                   {plan.recommendations.filter(r => r.status === 'dismissed').length}
                 </div>
-                <div className="text-sm text-gray-600">Dismissed</div>
+                <div className="text-xs text-muted-foreground uppercase tracking-wide">Dismissed</div>
               </div>
             </div>
           </CardContent>
@@ -314,13 +298,13 @@ export default function CareerPlanPage() {
                 All ({activeRecommendations.length})
               </TabsTrigger>
               <TabsTrigger value="compensation">
-                💰 Compensation ({activeRecommendations.filter(r => r.category === 'compensation').length})
+                Compensation
               </TabsTrigger>
               <TabsTrigger value="skills">
-                🎯 Skills ({activeRecommendations.filter(r => r.category === 'skills').length})
+                Skills
               </TabsTrigger>
               <TabsTrigger value="strategic">
-                🚀 Strategic ({activeRecommendations.filter(r => r.category === 'strategic').length})
+                Strategic
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -331,62 +315,49 @@ export default function CareerPlanPage() {
           {filteredRecommendations.map((rec, index) => (
             <Card
               key={rec.recommendation_id || `rec-${index}`}
-              className={rec.status === 'completed' ? 'opacity-75 bg-gray-50' : ''}
+              className={cn(
+                "transition-all shadow-sm border-border hover:border-primary/50 cursor-pointer",
+                rec.status === 'completed' && "opacity-60 bg-muted/30"
+              )}
+              onClick={() => setSelectedRec(rec)}
             >
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start space-x-3 flex-1">
+              <CardHeader className="py-4">
+                <div className="flex items-start gap-4">
+                   <div className="flex items-center h-6" onClick={(e) => e.stopPropagation()}>
                     <Checkbox
                       checked={rec.status === 'completed'}
                       onCheckedChange={() => handleToggleComplete(rec.recommendation_id, rec.status)}
-                      className="mt-1"
                     />
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-2xl">{categoryIcons[rec.category]}</span>
-                        <CardTitle className={rec.status === 'completed' ? 'line-through' : ''}>
+                   </div>
+                   <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className="text-xl">{categoryIcons[rec.category]}</span>
+                        <h3 className={cn("text-base font-semibold truncate", rec.status === 'completed' && "line-through text-muted-foreground")}>
                           {rec.title}
-                        </CardTitle>
+                        </h3>
                       </div>
-                      <div className="flex gap-2 mb-2">
-                        <Badge className={priorityColors[rec.priority_level]}>
-                          {rec.priority_level} priority
+                      <div className="flex items-center gap-2 mb-2">
+                        <Badge variant="outline" className={cn(rec.priority_level === 'high' && "border-red-200 text-red-700 bg-red-50")}>
+                          {rec.priority_level}
                         </Badge>
-                        <Badge variant="outline">
+                        <Badge variant="secondary" className="capitalize">
                           {rec.category}
                         </Badge>
                       </div>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSelectedRec(rec)}
-                  >
-                    View Details
-                  </Button>
+                      <p className="text-sm text-muted-foreground line-clamp-2">{rec.description}</p>
+                   </div>
+                   <div className="flex items-center justify-center">
+                     <ArrowRight className="w-4 h-4 text-muted-foreground" />
+                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-700 mb-3">{rec.description}</p>
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
-                  <p className="text-xs font-semibold text-blue-900 mb-1">Expected Impact:</p>
-                  <p className="text-sm text-blue-800">{rec.expected_impact}</p>
-                </div>
-                {rec.user_notes && (
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                    <p className="text-xs font-semibold text-amber-900 mb-1">Your Notes:</p>
-                    <p className="text-sm text-amber-800">{rec.user_notes}</p>
-                  </div>
-                )}
-              </CardContent>
             </Card>
           ))}
 
           {filteredRecommendations.length === 0 && (
-            <Card>
+            <Card className="border-dashed shadow-none bg-muted/10">
               <CardContent className="text-center py-12">
-                <p className="text-gray-600">No recommendations in this category</p>
+                <p className="text-muted-foreground">No recommendations in this category</p>
               </CardContent>
             </Card>
           )}
@@ -399,44 +370,44 @@ export default function CareerPlanPage() {
           {selectedRec && (
             <>
               <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
+                <DialogTitle className="flex items-center gap-2 text-xl">
                   <span className="text-2xl">{categoryIcons[selectedRec.category]}</span>
                   {selectedRec.title}
                 </DialogTitle>
               </DialogHeader>
               
               <div className="flex gap-2 mb-4">
-                <Badge className={priorityColors[selectedRec.priority_level]}>
+                <Badge variant="outline" className={cn(selectedRec.priority_level === 'high' && "border-red-200 text-red-700 bg-red-50")}>
                   {selectedRec.priority_level} priority
                 </Badge>
-                <Badge variant="outline">
+                <Badge variant="secondary" className="capitalize">
                   {selectedRec.category}
                 </Badge>
                 {selectedRec.status === 'completed' && (
-                  <Badge className="bg-green-100 text-green-800">
+                  <Badge className="bg-green-100 text-green-800 border-green-200">
                     Completed
                   </Badge>
                 )}
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div>
-                  <h4 className="font-semibold text-gray-900 mb-2">Description</h4>
-                  <p className="text-sm text-gray-700">{selectedRec.description}</p>
+                  <h4 className="font-semibold text-foreground mb-2 text-sm">Description</h4>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{selectedRec.description}</p>
                 </div>
 
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h4 className="font-semibold text-blue-900 mb-2">Expected Impact</h4>
-                  <p className="text-sm text-blue-800">{selectedRec.expected_impact}</p>
+                <div className="bg-primary/5 border border-primary/10 rounded-lg p-4">
+                  <h4 className="font-semibold text-primary mb-1 text-sm">Expected Impact</h4>
+                  <p className="text-sm text-foreground/80">{selectedRec.expected_impact}</p>
                 </div>
 
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                  <h4 className="font-semibold text-gray-900 mb-2">Data Source</h4>
-                  <p className="text-sm text-gray-700">{selectedRec.data_source}</p>
+                <div className="bg-muted/50 border border-border rounded-lg p-4">
+                  <h4 className="font-semibold text-foreground mb-1 text-sm">Data Source</h4>
+                  <p className="text-sm text-muted-foreground">{selectedRec.data_source}</p>
                 </div>
 
                 <div>
-                  <h4 className="font-semibold text-gray-900 mb-2">Your Notes</h4>
+                  <h4 className="font-semibold text-foreground mb-2 text-sm">Your Notes</h4>
                   <Textarea
                     placeholder="Add notes about your progress or thoughts..."
                     value={selectedRec.user_notes}
@@ -465,6 +436,6 @@ export default function CareerPlanPage() {
           )}
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 }

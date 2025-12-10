@@ -106,7 +106,9 @@ export default function BenchmarkPage() {
       if (!token) return;
       
       const profile = await profileService.getProfileAsync(token);
-      const userName = profile ? `${profile.first_name} ${profile.last_name}` : 'User';
+      // We removed first_name/last_name from profile type earlier, using defaults for now
+      // or relying on Clerk user object if available in scope, but for PDF export:
+      const userName = 'User';
       
       exportBenchmarkToPDF({
         industry_name: profile?.industry || 'Technology',
@@ -154,57 +156,48 @@ export default function BenchmarkPage() {
   }
 
   const getQuartileColor = (quartile: number) => {
-    if (quartile >= 75) return 'text-green-600 bg-green-50';
-    if (quartile >= 50) return 'text-blue-600 bg-blue-50';
-    if (quartile >= 25) return 'text-amber-600 bg-amber-50';
-    return 'text-red-600 bg-red-50';
-  };
-
-  const getScoreColor = (score: number) => {
-    if (score >= 75) return 'bg-green-500';
-    if (score >= 50) return 'bg-blue-500';
-    if (score >= 25) return 'bg-amber-500';
-    return 'bg-red-500';
+    if (quartile >= 75) return 'text-emerald-700 bg-emerald-50 border-emerald-200';
+    if (quartile >= 50) return 'text-blue-700 bg-blue-50 border-blue-200';
+    if (quartile >= 25) return 'text-amber-700 bg-amber-50 border-amber-200';
+    return 'text-red-700 bg-red-50 border-red-200';
   };
 
   return (
-    <>
+    <div className="min-h-screen bg-background pb-12">
       <DashboardNav />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8 flex justify-between items-start">
+        <div className="mb-8 flex flex-col md:flex-row md:justify-between md:items-start gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Industry Benchmark Report</h1>
-            <p className="text-gray-600">
+            <h1 className="text-3xl font-bold tracking-tight text-foreground mb-1">Benchmark Report</h1>
+            <p className="text-muted-foreground">
               Generated on {new Date(report.generation_date).toLocaleDateString()}
             </p>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Based on {report.comparable_profiles_count} comparable professionals
             </p>
           </div>
           <div className="flex gap-2">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={handleExportPDF}
-              className="bg-white hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50"
             >
               <Download className="w-4 h-4 mr-2" />
               Export PDF
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={handleRegenerateReport}
-              className="bg-white"
             >
-              Regenerate Report
+              Regenerate
             </Button>
-            <Button asChild className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700">
+            <Button asChild>
               <Link href="/dashboard/plan">View Career Plan →</Link>
             </Button>
           </div>
         </div>
 
         {/* Overview Section */}
-        <Card className="mb-6">
+        <Card className="mb-6 shadow-sm">
           <CardHeader>
             <CardTitle>Overall Performance</CardTitle>
             <CardDescription>{report.insights.overall}</CardDescription>
@@ -213,144 +206,144 @@ export default function BenchmarkPage() {
 
         {/* Key Metrics Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm text-gray-600">Compensation Quartile</CardTitle>
+          <Card className="shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Compensation</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className={`text-4xl font-bold mb-2 ${getQuartileColor(report.compensation_quartile).split(' ')[0]}`}>
+              <div className={`text-3xl font-bold mb-2 text-foreground`}>
                 {report.compensation_quartile}th
               </div>
-              <Progress 
-                value={report.compensation_quartile} 
-                className="mb-2"
+              <Progress
+                value={report.compensation_quartile}
+                className="mb-2 h-2"
               />
-              <p className="text-xs text-gray-600">Percentile</p>
+              <p className="text-xs text-muted-foreground">Percentile</p>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm text-gray-600">Career Progression</CardTitle>
+          <Card className="shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Progression</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className={`text-4xl font-bold mb-2 ${getQuartileColor(report.career_progression_score).split(' ')[0]}`}>
+              <div className={`text-3xl font-bold mb-2 text-foreground`}>
                 {report.career_progression_score}
               </div>
-              <Progress 
-                value={report.career_progression_score} 
-                className="mb-2"
+              <Progress
+                value={report.career_progression_score}
+                className="mb-2 h-2"
               />
-              <p className="text-xs text-gray-600">Score (out of 100)</p>
+              <p className="text-xs text-muted-foreground">Score (0-100)</p>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm text-gray-600">Skill Relevance</CardTitle>
+          <Card className="shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Skill Relevance</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className={`text-4xl font-bold mb-2 ${getQuartileColor(report.skill_relevance_scores.overall).split(' ')[0]}`}>
+              <div className={`text-3xl font-bold mb-2 text-foreground`}>
                 {report.skill_relevance_scores.overall}
               </div>
-              <Progress 
-                value={report.skill_relevance_scores.overall} 
-                className="mb-2"
+              <Progress
+                value={report.skill_relevance_scores.overall}
+                className="mb-2 h-2"
               />
-              <p className="text-xs text-gray-600">Overall Score</p>
+              <p className="text-xs text-muted-foreground">Overall Score</p>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm text-gray-600">Position Level</CardTitle>
+          <Card className="shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Position Level</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className={`text-4xl font-bold mb-2 ${getQuartileColor(report.position_level_score).split(' ')[0]}`}>
+              <div className={`text-3xl font-bold mb-2 text-foreground`}>
                 {report.position_level_score}
               </div>
-              <Progress 
-                value={report.position_level_score} 
-                className="mb-2"
+              <Progress
+                value={report.position_level_score}
+                className="mb-2 h-2"
               />
-              <p className="text-xs text-gray-600">vs. Experience</p>
+              <p className="text-xs text-muted-foreground">vs. Experience</p>
             </CardContent>
           </Card>
         </div>
 
         {/* Detailed Insights */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <Card>
+          <Card className="shadow-sm">
             <CardHeader>
-              <CardTitle>💰 Compensation Analysis</CardTitle>
+              <CardTitle className="text-lg">Compensation Analysis</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="mb-4">
+              <div className="mb-6">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">Your Position</span>
-                  <Badge className={getQuartileColor(report.compensation_quartile)}>
+                  <span className="text-sm font-medium">Your Position</span>
+                  <Badge variant="outline" className={getQuartileColor(report.compensation_quartile)}>
                     {report.compensation_quartile}th Percentile
                   </Badge>
                 </div>
-                <Progress value={report.compensation_quartile} className="h-3" />
+                <Progress value={report.compensation_quartile} className="h-2" />
               </div>
-              <p className="text-sm text-gray-700">{report.insights.compensation}</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">{report.insights.compensation}</p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="shadow-sm">
             <CardHeader>
-              <CardTitle>📈 Career Progression</CardTitle>
+              <CardTitle className="text-lg">Career Progression</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="mb-4">
+              <div className="mb-6">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">Progression Rate</span>
-                  <Badge className={getQuartileColor(report.career_progression_score)}>
+                  <span className="text-sm font-medium">Progression Rate</span>
+                  <Badge variant="outline" className={getQuartileColor(report.career_progression_score)}>
                     Score: {report.career_progression_score}
                   </Badge>
                 </div>
-                <Progress value={report.career_progression_score} className="h-3" />
+                <Progress value={report.career_progression_score} className="h-2" />
               </div>
-              <p className="text-sm text-gray-700">{report.insights.progression}</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">{report.insights.progression}</p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="shadow-sm">
             <CardHeader>
-              <CardTitle>🎯 Skills Assessment</CardTitle>
+              <CardTitle className="text-lg">Skills Assessment</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3 mb-4">
+              <div className="space-y-4 mb-6">
                 <div>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-gray-700">Technical Skills</span>
+                  <div className="flex justify-between text-sm mb-1.5">
+                    <span className="text-muted-foreground">Technical Skills</span>
                     <span className="font-medium">{report.skill_relevance_scores.technical}%</span>
                   </div>
                   <Progress value={report.skill_relevance_scores.technical} className="h-2" />
                 </div>
                 <div>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-gray-700">Soft Skills</span>
+                  <div className="flex justify-between text-sm mb-1.5">
+                    <span className="text-muted-foreground">Soft Skills</span>
                     <span className="font-medium">{report.skill_relevance_scores.soft}%</span>
                   </div>
                   <Progress value={report.skill_relevance_scores.soft} className="h-2" />
                 </div>
               </div>
-              <p className="text-sm text-gray-700">{report.insights.skills}</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">{report.insights.skills}</p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="shadow-sm">
             <CardHeader>
-              <CardTitle>📚 Data Sources</CardTitle>
+              <CardTitle className="text-lg">Data Sources</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-gray-600 mb-3">This report is based on authoritative market research:</p>
+              <p className="text-sm text-muted-foreground mb-3">This report is based on authoritative market research:</p>
               <ul className="space-y-2">
                 {report.data_sources_used.map((source, index) => (
-                  <li key={index} className="text-sm text-gray-700 flex items-start">
-                    <span className="text-indigo-600 mr-2">•</span>
+                  <li key={index} className="text-sm text-foreground flex items-start">
+                    <span className="text-primary mr-2">•</span>
                     <span>{source}</span>
                   </li>
                 ))}
@@ -360,10 +353,10 @@ export default function BenchmarkPage() {
         </div>
 
         {/* Call to Action */}
-        <Card className="bg-indigo-50 border-indigo-200">
+        <Card className="bg-primary/5 border-primary/20 shadow-none">
           <CardHeader>
-            <CardTitle className="text-indigo-900">Ready to Take Action?</CardTitle>
-            <CardDescription className="text-indigo-700">
+            <CardTitle className="text-primary">Ready to Take Action?</CardTitle>
+            <CardDescription className="text-primary/80">
               View your personalized career advancement plan with specific recommendations
             </CardDescription>
           </CardHeader>
@@ -374,6 +367,6 @@ export default function BenchmarkPage() {
           </CardContent>
         </Card>
       </div>
-    </>
+    </div>
   );
 }

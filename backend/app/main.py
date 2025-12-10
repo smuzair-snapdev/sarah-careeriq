@@ -53,4 +53,4 @@ async def health_check():
 
 @app.get("/")
 async def root():
-    return {"message": "Welcome to CareerIQ Backend"}
+    return {"message": "Welcome to DevCareerIQ Backend"}

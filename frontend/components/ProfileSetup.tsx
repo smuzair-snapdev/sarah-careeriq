@@ -3,23 +3,36 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
-import { profileService, Profile, INDUSTRIES, SUGGESTED_TECHNICAL_SKILLS, SUGGESTED_SOFT_SKILLS, CareerProgression } from '@/lib/profile';
+import { 
+  profileService, 
+  Profile, 
+  INDUSTRIES, 
+  DEV_ROLES,
+  LANGUAGES,
+  DATABASES,
+  PLATFORMS,
+  FRAMEWORKS,
+  COUNTRIES,
+  SUGGESTED_SOFT_SKILLS, 
+  CareerProgression 
+} from '@/lib/profile';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Check, Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const STEPS = [
-  { id: 1, title: 'Education', description: 'Your educational background' },
-  { id: 2, title: 'Current Position', description: 'Your current role and company' },
-  { id: 3, title: 'Technical Skills', description: 'Your technical expertise' },
-  { id: 4, title: 'Soft Skills', description: 'Your interpersonal abilities' },
-  { id: 5, title: 'Career History', description: 'Your career progression' },
-  { id: 6, title: 'Compensation', description: 'Your salary information' },
+  { id: 1, title: 'Basics', description: 'Background & location' },
+  { id: 2, title: 'Current Role', description: 'Position details' },
+  { id: 3, title: 'Tech Stack', description: 'Languages & frameworks' },
+  { id: 4, title: 'Tools', description: 'Databases & platforms' },
+  { id: 5, title: 'Soft Skills', description: 'Professional attributes' },
+  { id: 6, title: 'Compensation', description: 'Salary information' },
 ];
 
 export default function ProfileSetup() {
@@ -30,21 +43,38 @@ export default function ProfileSetup() {
   const [loading, setLoading] = useState(true);
   
   // Form state
+  // Step 1: Basics
   const [graduationYear, setGraduationYear] = useState('');
   const [fieldOfStudy, setFieldOfStudy] = useState('');
   const [age, setAge] = useState('');
+  const [country, setCountry] = useState('');
+  const [yearsExperience, setYearsExperience] = useState('');
+
+  // Step 2: Current Role
   const [currentCompany, setCurrentCompany] = useState('');
   const [currentTitle, setCurrentTitle] = useState('');
   const [industry, setIndustry] = useState('');
-  const [technicalSkills, setTechnicalSkills] = useState<string[]>([]);
-  const [customTechSkill, setCustomTechSkill] = useState('');
+  const [devRole, setDevRole] = useState('');
+  
+  // Step 3: Tech Stack
+  const [languages, setLanguages] = useState<string[]>([]);
+  const [frameworks, setFrameworks] = useState<string[]>([]);
+  
+  // Step 4: Tools
+  const [databases, setDatabases] = useState<string[]>([]);
+  const [platforms, setPlatforms] = useState<string[]>([]);
+  
+  // Step 5: Soft Skills
   const [softSkills, setSoftSkills] = useState<string[]>([]);
   const [customSoftSkill, setCustomSoftSkill] = useState('');
   const [careerProgression, setCareerProgression] = useState<CareerProgression[]>([]);
-  const [newProgressionDate, setNewProgressionDate] = useState('');
-  const [newProgressionTitle, setNewProgressionTitle] = useState('');
-  const [newProgressionCompany, setNewProgressionCompany] = useState('');
+
+  // Step 6: Compensation
   const [salaryPackage, setSalaryPackage] = useState('');
+
+  // Search/Filter states
+  const [roleSearch, setRoleSearch] = useState('');
+  const [countrySearch, setCountrySearch] = useState('');
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -55,14 +85,22 @@ export default function ProfileSetup() {
 
           const existingProfile = await profileService.getProfileAsync(token);
           if (existingProfile) {
-            // Load existing profile data
             setGraduationYear(existingProfile.graduation_year?.toString() || '');
             setFieldOfStudy(existingProfile.field_of_study || '');
             setAge(existingProfile.age?.toString() || '');
+            setCountry(existingProfile.country || '');
+            setYearsExperience(existingProfile.years_experience?.toString() || '');
+            
             setCurrentCompany(existingProfile.current_company || '');
             setCurrentTitle(existingProfile.current_title || '');
             setIndustry(existingProfile.industry || '');
-            setTechnicalSkills(existingProfile.technical_skills || []);
+            setDevRole(existingProfile.dev_role || '');
+            
+            setLanguages(existingProfile.languages || []);
+            setFrameworks(existingProfile.frameworks || []);
+            setDatabases(existingProfile.databases || []);
+            setPlatforms(existingProfile.platforms || []);
+            
             setSoftSkills(existingProfile.soft_skills || []);
             setCareerProgression(existingProfile.career_progression || []);
             setSalaryPackage(existingProfile.salary_package?.toString() || '');
@@ -77,12 +115,12 @@ export default function ProfileSetup() {
     fetchProfile();
   }, [user, getToken]);
 
-  if (!isLoaded) {
+  if (!isLoaded || loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-transparent border-t-indigo-600 border-r-purple-600 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-lg font-medium bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Loading...</p>
+      <div className="flex justify-center items-center min-h-screen bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm font-medium text-muted-foreground">Loading profile...</p>
         </div>
       </div>
     );
@@ -93,6 +131,7 @@ export default function ProfileSetup() {
     if (validateCurrentStep()) {
       if (currentStep < STEPS.length) {
         setCurrentStep(currentStep + 1);
+        window.scrollTo(0, 0);
       } else {
         handleSubmit();
       }
@@ -102,48 +141,42 @@ export default function ProfileSetup() {
   const handleBack = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
+      window.scrollTo(0, 0);
     }
   };
 
   const validateCurrentStep = (): boolean => {
     switch (currentStep) {
       case 1:
-        if (!graduationYear || !fieldOfStudy || !age) {
-          setError('Please fill in all education fields');
+        if (!graduationYear || !fieldOfStudy || !age || !country || !yearsExperience) {
+          setError('Please fill in all basic fields');
           return false;
         }
         const gradYear = parseInt(graduationYear);
-        const userAge = parseInt(age);
-        if (gradYear < 1980 || gradYear > new Date().getFullYear()) {
+        if (gradYear < 1960 || gradYear > new Date().getFullYear()) {
           setError('Please enter a valid graduation year');
           return false;
         }
-        // Removed age restriction for testing
-        // if (userAge < 30 || userAge > 50) {
-        //   setError('This platform is designed for professionals aged 30-50');
-        //   return false;
-        // }
         return true;
       case 2:
-        if (!currentCompany || !currentTitle || !industry) {
-          setError('Please fill in all current position fields');
+        if (!currentCompany || !currentTitle || !industry || !devRole) {
+          setError('Please fill in all role information');
           return false;
         }
         return true;
       case 3:
-        if (technicalSkills.length === 0) {
-          setError('Please select at least one technical skill');
+        if (languages.length === 0) {
+          setError('Please select at least one language');
           return false;
         }
         return true;
       case 4:
+        return true;
+      case 5:
         if (softSkills.length === 0) {
           setError('Please select at least one soft skill');
           return false;
         }
-        return true;
-      case 5:
-        // Career progression is optional
         return true;
       case 6:
         if (!salaryPackage) {
@@ -170,23 +203,34 @@ export default function ProfileSetup() {
         return;
       }
 
+      const technicalSkills = [
+          ...languages, 
+          ...frameworks, 
+          ...databases, 
+          ...platforms
+      ];
+
       const profileData: Partial<Profile> = {
         graduation_year: parseInt(graduationYear),
         field_of_study: fieldOfStudy,
         age: parseInt(age),
+        country,
+        years_experience: parseFloat(yearsExperience),
         current_company: currentCompany,
         current_title: currentTitle,
         industry,
+        dev_role: devRole,
+        languages,
+        frameworks,
+        databases,
+        platforms,
         technical_skills: technicalSkills,
         soft_skills: softSkills,
         career_progression: careerProgression,
         salary_package: parseInt(salaryPackage),
       };
 
-      // Backend `update_profile` supports upsert=True and invalidates old reports
       await profileService.updateProfileAsync(token, profileData);
-      
-      // Redirect to benchmark page which will auto-generate new benchmark and plan
       router.push('/dashboard/benchmark');
     } catch (err) {
       console.error("Error saving profile:", err);
@@ -194,72 +238,49 @@ export default function ProfileSetup() {
     }
   };
 
-  const toggleSkill = (skill: string, type: 'technical' | 'soft') => {
-    if (type === 'technical') {
-      if (technicalSkills.includes(skill)) {
-        setTechnicalSkills(technicalSkills.filter(s => s !== skill));
-      } else {
-        setTechnicalSkills([...technicalSkills, skill]);
-      }
+  const toggleSelection = (item: string, list: string[], setList: (l: string[]) => void) => {
+    if (list.includes(item)) {
+      setList(list.filter(i => i !== item));
     } else {
-      if (softSkills.includes(skill)) {
-        setSoftSkills(softSkills.filter(s => s !== skill));
-      } else {
-        setSoftSkills([...softSkills, skill]);
-      }
+      setList([...list, item]);
     }
   };
 
-  const addCustomSkill = (type: 'technical' | 'soft') => {
-    if (type === 'technical' && customTechSkill.trim()) {
-      if (!technicalSkills.includes(customTechSkill.trim())) {
-        setTechnicalSkills([...technicalSkills, customTechSkill.trim()]);
-      }
-      setCustomTechSkill('');
-    } else if (type === 'soft' && customSoftSkill.trim()) {
-      if (!softSkills.includes(customSoftSkill.trim())) {
-        setSoftSkills([...softSkills, customSoftSkill.trim()]);
-      }
+  const addCustomSoftSkill = () => {
+    if (customSoftSkill.trim() && !softSkills.includes(customSoftSkill.trim())) {
+      setSoftSkills([...softSkills, customSoftSkill.trim()]);
       setCustomSoftSkill('');
     }
-  };
-
-  const addCareerProgression = () => {
-    if (newProgressionDate && newProgressionTitle && newProgressionCompany) {
-      setCareerProgression([
-        ...careerProgression,
-        {
-          date: newProgressionDate,
-          title: newProgressionTitle,
-          company: newProgressionCompany,
-        },
-      ]);
-      setNewProgressionDate('');
-      setNewProgressionTitle('');
-      setNewProgressionCompany('');
-    }
-  };
-
-  const removeCareerProgression = (index: number) => {
-    setCareerProgression(careerProgression.filter((_, i) => i !== index));
   };
 
   const renderStep = () => {
     switch (currentStep) {
       case 1:
         return (
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="graduationYear">Graduation Year</Label>
-              <Input
-                id="graduationYear"
-                type="number"
-                placeholder="2010"
-                value={graduationYear}
-                onChange={(e) => setGraduationYear(e.target.value)}
-                min="1980"
-                max={new Date().getFullYear()}
-              />
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="graduationYear">Graduation Year</Label>
+                <Input
+                  id="graduationYear"
+                  type="number"
+                  placeholder="e.g. 2018"
+                  value={graduationYear}
+                  onChange={(e) => setGraduationYear(e.target.value)}
+                  className="bg-background"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="age">Age</Label>
+                <Input
+                  id="age"
+                  type="number"
+                  placeholder="e.g. 28"
+                  value={age}
+                  onChange={(e) => setAge(e.target.value)}
+                  className="bg-background"
+                />
+              </div>
             </div>
             
             <div className="space-y-2">
@@ -267,254 +288,273 @@ export default function ProfileSetup() {
               <Input
                 id="fieldOfStudy"
                 type="text"
-                placeholder="Computer Science"
+                placeholder="e.g. Computer Science"
                 value={fieldOfStudy}
                 onChange={(e) => setFieldOfStudy(e.target.value)}
+                className="bg-background"
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="age">Age</Label>
+              <Label htmlFor="yearsExperience">Years of Experience</Label>
               <Input
-                id="age"
+                id="yearsExperience"
                 type="number"
-                placeholder="35"
-                value={age}
-                onChange={(e) => setAge(e.target.value)}
-              />
-              <p className="text-sm text-gray-500">This platform is designed for professionals aged 30-50 (restriction lifted for demo)</p>
-            </div>
-          </div>
-        );
-      
-      case 2:
-        return (
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="currentCompany">Current Company</Label>
-              <Input
-                id="currentCompany"
-                type="text"
-                placeholder="Acme Corp"
-                value={currentCompany}
-                onChange={(e) => setCurrentCompany(e.target.value)}
+                step="0.5"
+                placeholder="e.g. 5.5"
+                value={yearsExperience}
+                onChange={(e) => setYearsExperience(e.target.value)}
+                className="bg-background"
               />
             </div>
-            
+
             <div className="space-y-2">
-              <Label htmlFor="currentTitle">Current Job Title</Label>
-              <Input
-                id="currentTitle"
-                type="text"
-                placeholder="Senior Software Engineer"
-                value={currentTitle}
-                onChange={(e) => setCurrentTitle(e.target.value)}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="industry">Industry</Label>
-              <Select value={industry} onValueChange={setIndustry}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select your industry" />
+              <Label htmlFor="country">Country</Label>
+              <Select value={country} onValueChange={setCountry}>
+                <SelectTrigger className="bg-background">
+                  <SelectValue placeholder="Select country" />
                 </SelectTrigger>
                 <SelectContent>
-                  {INDUSTRIES.map((ind) => (
-                    <SelectItem key={ind} value={ind}>
-                      {ind}
-                    </SelectItem>
-                  ))}
+                   <div className="p-2">
+                      <Input 
+                        placeholder="Search..." 
+                        value={countrySearch} 
+                        onChange={(e) => setCountrySearch(e.target.value)}
+                        className="mb-2 h-8"
+                        onKeyDown={(e) => e.stopPropagation()} 
+                      />
+                   </div>
+                   <ScrollArea className="h-[200px]">
+                    {COUNTRIES.filter(c => c.toLowerCase().includes(countrySearch.toLowerCase())).map((c) => (
+                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    ))}
+                  </ScrollArea>
                 </SelectContent>
               </Select>
             </div>
           </div>
         );
       
-      case 3:
+      case 2:
         return (
-          <div className="space-y-4">
-            <div>
-              <Label>Select Your Technical Skills</Label>
-              <p className="text-sm text-gray-500 mb-3">Click to select or deselect skills</p>
-              <div className="flex flex-wrap gap-2 mb-4">
-                {SUGGESTED_TECHNICAL_SKILLS.map((skill) => (
-                  <Badge
-                    key={skill}
-                    variant={technicalSkills.includes(skill) ? 'default' : 'outline'}
-                    className="cursor-pointer"
-                    onClick={() => toggleSkill(skill, 'technical')}
-                  >
-                    {skill}
-                    {technicalSkills.includes(skill) && ' ✓'}
-                  </Badge>
-                ))}
-              </div>
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="currentCompany">Current Company</Label>
+              <Input
+                id="currentCompany"
+                type="text"
+                placeholder="e.g. Tech Corp"
+                value={currentCompany}
+                onChange={(e) => setCurrentCompany(e.target.value)}
+                className="bg-background"
+              />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="customTechSkill">Add Custom Skill</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="customTechSkill"
-                  type="text"
-                  placeholder="Enter a skill"
-                  value={customTechSkill}
-                  onChange={(e) => setCustomTechSkill(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && addCustomSkill('technical')}
-                />
-                <Button type="button" onClick={() => addCustomSkill('technical')}>Add</Button>
-              </div>
+              <Label htmlFor="currentTitle">Job Title</Label>
+              <Input
+                id="currentTitle"
+                type="text"
+                placeholder="e.g. Senior Software Engineer"
+                value={currentTitle}
+                onChange={(e) => setCurrentTitle(e.target.value)}
+                className="bg-background"
+              />
             </div>
             
-            {technicalSkills.length > 0 && (
-              <div>
-                <Label>Your Technical Skills ({technicalSkills.length})</Label>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {technicalSkills.map((skill) => (
-                    <Badge key={skill} variant="default">
-                      {skill}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
+            <div className="space-y-2">
+              <Label htmlFor="industry">Industry</Label>
+              <Select value={industry} onValueChange={setIndustry}>
+                <SelectTrigger className="bg-background">
+                  <SelectValue placeholder="Select industry" />
+                </SelectTrigger>
+                <SelectContent>
+                  <ScrollArea className="h-[200px]">
+                    {INDUSTRIES.map((ind) => (
+                      <SelectItem key={ind} value={ind}>{ind}</SelectItem>
+                    ))}
+                  </ScrollArea>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="devRole">Role Type</Label>
+              <Select value={devRole} onValueChange={setDevRole}>
+                <SelectTrigger className="bg-background">
+                  <SelectValue placeholder="Select closest role" />
+                </SelectTrigger>
+                <SelectContent>
+                   <div className="p-2">
+                      <Input 
+                        placeholder="Search roles..." 
+                        value={roleSearch} 
+                        onChange={(e) => setRoleSearch(e.target.value)}
+                        className="mb-2 h-8"
+                        onKeyDown={(e) => e.stopPropagation()}
+                      />
+                   </div>
+                   <ScrollArea className="h-[200px]">
+                    {DEV_ROLES.filter(r => r.toLowerCase().includes(roleSearch.toLowerCase())).map((r) => (
+                      <SelectItem key={r} value={r}>{r}</SelectItem>
+                    ))}
+                  </ScrollArea>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Used for market benchmarking.</p>
+            </div>
           </div>
         );
       
-      case 4:
+      case 3:
         return (
-          <div className="space-y-4">
-            <div>
-              <Label>Select Your Soft Skills</Label>
-              <p className="text-sm text-gray-500 mb-3">Click to select or deselect skills</p>
-              <div className="flex flex-wrap gap-2 mb-4">
-                {SUGGESTED_SOFT_SKILLS.map((skill) => (
-                  <Badge
-                    key={skill}
-                    variant={softSkills.includes(skill) ? 'default' : 'outline'}
-                    className="cursor-pointer"
-                    onClick={() => toggleSkill(skill, 'soft')}
-                  >
-                    {skill}
-                    {softSkills.includes(skill) && ' ✓'}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="customSoftSkill">Add Custom Skill</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="customSoftSkill"
-                  type="text"
-                  placeholder="Enter a skill"
-                  value={customSoftSkill}
-                  onChange={(e) => setCustomSoftSkill(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && addCustomSkill('soft')}
-                />
-                <Button type="button" onClick={() => addCustomSkill('soft')}>Add</Button>
-              </div>
-            </div>
-            
-            {softSkills.length > 0 && (
-              <div>
-                <Label>Your Soft Skills ({softSkills.length})</Label>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {softSkills.map((skill) => (
-                    <Badge key={skill} variant="default">
-                      {skill}
+          <div className="space-y-8">
+            <div className="space-y-3">
+              <Label className="text-base font-semibold">Languages</Label>
+              <ScrollArea className="h-[240px] border rounded-md p-4 bg-background">
+                <div className="flex flex-wrap gap-2">
+                  {LANGUAGES.map((lang) => (
+                    <Badge
+                      key={lang}
+                      variant={languages.includes(lang) ? 'default' : 'outline'}
+                      className={cn(
+                        "cursor-pointer hover:bg-primary/90 transition-all",
+                        languages.includes(lang) ? "border-primary" : "text-muted-foreground"
+                      )}
+                      onClick={() => toggleSelection(lang, languages, setLanguages)}
+                    >
+                      {lang}
                     </Badge>
                   ))}
                 </div>
-              </div>
-            )}
+              </ScrollArea>
+            </div>
+
+            <div className="space-y-3">
+              <Label className="text-base font-semibold">Frameworks</Label>
+              <ScrollArea className="h-[240px] border rounded-md p-4 bg-background">
+                <div className="flex flex-wrap gap-2">
+                  {FRAMEWORKS.map((fw) => (
+                    <Badge
+                      key={fw}
+                      variant={frameworks.includes(fw) ? 'default' : 'outline'}
+                      className={cn(
+                        "cursor-pointer hover:bg-primary/90 transition-all",
+                        frameworks.includes(fw) ? "border-primary" : "text-muted-foreground"
+                      )}
+                      onClick={() => toggleSelection(fw, frameworks, setFrameworks)}
+                    >
+                      {fw}
+                    </Badge>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+          </div>
+        );
+
+      case 4:
+        return (
+          <div className="space-y-8">
+            <div className="space-y-3">
+              <Label className="text-base font-semibold">Databases</Label>
+              <ScrollArea className="h-[240px] border rounded-md p-4 bg-background">
+                <div className="flex flex-wrap gap-2">
+                  {DATABASES.map((db) => (
+                    <Badge
+                      key={db}
+                      variant={databases.includes(db) ? 'default' : 'outline'}
+                      className={cn(
+                        "cursor-pointer hover:bg-primary/90 transition-all",
+                        databases.includes(db) ? "border-primary" : "text-muted-foreground"
+                      )}
+                      onClick={() => toggleSelection(db, databases, setDatabases)}
+                    >
+                      {db}
+                    </Badge>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+
+            <div className="space-y-3">
+              <Label className="text-base font-semibold">Platforms & Tools</Label>
+              <ScrollArea className="h-[240px] border rounded-md p-4 bg-background">
+                <div className="flex flex-wrap gap-2">
+                  {PLATFORMS.map((pl) => (
+                    <Badge
+                      key={pl}
+                      variant={platforms.includes(pl) ? 'default' : 'outline'}
+                      className={cn(
+                        "cursor-pointer hover:bg-primary/90 transition-all",
+                        platforms.includes(pl) ? "border-primary" : "text-muted-foreground"
+                      )}
+                      onClick={() => toggleSelection(pl, platforms, setPlatforms)}
+                    >
+                      {pl}
+                    </Badge>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
           </div>
         );
       
       case 5:
         return (
-          <div className="space-y-4">
-            <div>
-              <Label>Career Progression (Optional)</Label>
-              <p className="text-sm text-gray-500 mb-3">Add your promotions and job changes</p>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="progressionDate">Date</Label>
-              <Input
-                id="progressionDate"
-                type="month"
-                value={newProgressionDate}
-                onChange={(e) => setNewProgressionDate(e.target.value)}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="progressionTitle">Job Title</Label>
-              <Input
-                id="progressionTitle"
-                type="text"
-                placeholder="Senior Developer"
-                value={newProgressionTitle}
-                onChange={(e) => setNewProgressionTitle(e.target.value)}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="progressionCompany">Company</Label>
-              <Input
-                id="progressionCompany"
-                type="text"
-                placeholder="Tech Corp"
-                value={newProgressionCompany}
-                onChange={(e) => setNewProgressionCompany(e.target.value)}
-              />
-            </div>
-            
-            <Button type="button" onClick={addCareerProgression} variant="outline" className="w-full">
-              Add Career Entry
-            </Button>
-            
-            {careerProgression.length > 0 && (
-              <div className="space-y-2">
-                <Label>Your Career Timeline</Label>
-                {careerProgression.sort((a, b) => b.date.localeCompare(a.date)).map((entry, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                    <div>
-                      <p className="font-medium">{entry.title}</p>
-                      <p className="text-sm text-gray-600">{entry.company}</p>
-                      <p className="text-xs text-gray-500">{new Date(entry.date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</p>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeCareerProgression(index)}
-                    >
-                      Remove
-                    </Button>
-                  </div>
+          <div className="space-y-6">
+            <div className="space-y-3">
+              <Label className="text-base font-semibold">Soft Skills</Label>
+              <div className="flex flex-wrap gap-2">
+                {SUGGESTED_SOFT_SKILLS.map((skill) => (
+                  <Badge
+                    key={skill}
+                    variant={softSkills.includes(skill) ? 'default' : 'outline'}
+                    className={cn(
+                      "cursor-pointer transition-all",
+                      softSkills.includes(skill) ? "border-primary" : "text-muted-foreground"
+                    )}
+                    onClick={() => toggleSelection(skill, softSkills, setSoftSkills)}
+                  >
+                    {skill}
+                  </Badge>
                 ))}
               </div>
-            )}
+            </div>
+            
+            <div className="space-y-2 pt-4">
+              <Label htmlFor="customSoftSkill">Add Custom Skill</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="customSoftSkill"
+                  type="text"
+                  placeholder="Enter a skill..."
+                  value={customSoftSkill}
+                  onChange={(e) => setCustomSoftSkill(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && addCustomSoftSkill()}
+                  className="bg-background"
+                />
+                <Button type="button" variant="secondary" onClick={addCustomSoftSkill}>Add</Button>
+              </div>
+            </div>
           </div>
         );
       
       case 6:
         return (
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="salaryPackage">Annual Salary Package (USD)</Label>
               <Input
                 id="salaryPackage"
                 type="number"
-                placeholder="80000"
+                placeholder="e.g. 120000"
                 value={salaryPackage}
                 onChange={(e) => setSalaryPackage(e.target.value)}
                 min="0"
+                className="bg-background text-lg"
               />
-              <p className="text-sm text-gray-500">This information is kept completely confidential and is used only for benchmarking</p>
+              <p className="text-sm text-muted-foreground">Confidential. Used for aggregate benchmarking only.</p>
             </div>
           </div>
         );
@@ -524,92 +564,93 @@ export default function ProfileSetup() {
     }
   };
 
-  const progressPercentage = (currentStep / STEPS.length) * 100;
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 p-4 py-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">Complete Your Profile</h1>
-          <p className="text-lg text-gray-600">Help us provide personalized AI-powered career insights</p>
+    <div className="min-h-screen bg-background flex flex-col md:flex-row">
+      {/* Sidebar Stepper */}
+      <div className="w-full md:w-64 lg:w-80 border-r border-border bg-muted/10 p-6 md:p-8 flex flex-col shrink-0">
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-2">
+             <div className="h-6 w-6 bg-primary text-primary-foreground rounded-md flex items-center justify-center font-bold text-xs">IQ</div>
+             <h1 className="text-xl font-bold tracking-tight">Setup Profile</h1>
+          </div>
+          <p className="text-sm text-muted-foreground">Complete your profile to unlock personalized career insights.</p>
         </div>
         
-        {/* Visual Step Indicator */}
-        <div className="mb-8">
-          <div className="flex justify-between items-center mb-6">
-            {STEPS.map((step, index) => (
-              <div key={step.id} className="flex-1 flex items-center">
-                <div className="flex flex-col items-center flex-1">
-                  <div
-                    className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 shadow-md ${
-                      currentStep > step.id
-                        ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white'
-                        : currentStep === step.id
-                        ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white scale-110 ring-4 ring-indigo-200'
-                        : 'bg-white text-gray-400 border-2 border-gray-300'
-                    }`}
-                  >
-                    {currentStep > step.id ? '✓' : step.id}
+        <nav className="space-y-1 relative">
+          {/* Connecting Line (visual only, simplified) */}
+          <div className="absolute left-4 top-4 bottom-4 w-px bg-border -z-10 hidden md:block" />
+
+          {STEPS.map((step) => {
+            const isActive = currentStep === step.id;
+            const isCompleted = currentStep > step.id;
+            
+            return (
+              <div 
+                key={step.id} 
+                className={cn(
+                  "flex items-center gap-3 p-3 rounded-md transition-all duration-200",
+                  isActive ? "bg-background shadow-sm border border-border" : "hover:bg-muted/50"
+                )}
+              >
+                <div className={cn(
+                  "flex items-center justify-center w-8 h-8 rounded-full border text-sm font-medium transition-colors z-10 bg-background",
+                  isActive ? "border-primary text-primary ring-2 ring-primary/20" : 
+                  isCompleted ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground text-muted-foreground"
+                )}>
+                  {isCompleted ? <Check className="w-4 h-4" /> : step.id}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className={cn("text-sm font-medium truncate", isActive ? "text-foreground" : "text-muted-foreground")}>
+                    {step.title}
                   </div>
-                  <div className="text-xs font-medium mt-2 text-center hidden sm:block max-w-[80px]">
-                    <div className={currentStep === step.id ? 'text-indigo-600 font-semibold' : currentStep > step.id ? 'text-green-600' : 'text-gray-500'}>
-                      {step.title}
-                    </div>
+                  <div className="text-xs text-muted-foreground truncate hidden lg:block">
+                    {step.description}
                   </div>
                 </div>
-                {index < STEPS.length - 1 && (
-                  <div className="flex-1 h-1 mx-2">
-                    <div
-                      className={`h-full rounded transition-all duration-500 ${
-                        currentStep > step.id
-                          ? 'bg-gradient-to-r from-green-500 to-emerald-500'
-                          : 'bg-gray-300'
-                      }`}
-                    ></div>
-                  </div>
-                )}
               </div>
-            ))}
-          </div>
-          <div className="flex justify-between mb-2">
-            <span className="text-sm font-semibold text-gray-700">{STEPS[currentStep - 1].description}</span>
-            <span className="text-sm font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">{Math.round(progressPercentage)}% Complete</span>
-          </div>
-          <Progress value={progressPercentage} className="h-3" />
-        </div>
-        
-        <Card className="shadow-xl border-0">
-          <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50">
-            <CardTitle className="text-2xl">{STEPS[currentStep - 1].title}</CardTitle>
-            <CardDescription className="text-base">{STEPS[currentStep - 1].description}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6 pt-6">
+            )
+          })}
+        </nav>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 h-[calc(100vh-theme(spacing.20))] md:h-screen overflow-y-auto">
+         <div className="max-w-3xl mx-auto p-6 md:p-12 pb-24">
+            {/* Step Header */}
+            <div className="mb-8 pb-4 border-b border-border/50">
+                <h2 className="text-2xl font-bold tracking-tight text-foreground">{STEPS[currentStep-1].title}</h2>
+                <p className="text-muted-foreground mt-1">{STEPS[currentStep-1].description}</p>
+            </div>
+
             {error && (
-              <Alert variant="destructive">
+              <Alert variant="destructive" className="mb-6">
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-            
-            {renderStep()}
-            
-            <div className="flex justify-between pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleBack}
-                disabled={currentStep === 1}
-              >
-                Back
-              </Button>
-              <Button
-                type="button"
-                onClick={handleNext}
-              >
-                {currentStep === STEPS.length ? 'Complete Profile' : 'Next'}
-              </Button>
+
+            {/* Step Form Content */}
+            <div className="min-h-[300px]">
+                {renderStep()}
             </div>
-          </CardContent>
-        </Card>
+
+            {/* Footer Buttons */}
+            <div className="flex justify-between pt-8 mt-12 border-t border-border">
+                 <Button 
+                    variant="outline" 
+                    onClick={handleBack} 
+                    disabled={currentStep === 1}
+                    className="w-24"
+                 >
+                    Back
+                 </Button>
+                 <Button 
+                    onClick={handleNext}
+                    className="min-w-[120px]"
+                 >
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (currentStep === STEPS.length ? 'Complete' : 'Next Step')}
+                 </Button>
+            </div>
+         </div>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
-# CareerIQ - AI-Powered Career Advancement Platform
+# DevCareerIQ - AI-Powered Career Advancement Platform
 
-CareerIQ is a comprehensive career development platform that provides personalized career insights, industry benchmarks, and AI-generated career advancement plans.
+DevCareerIQ is a comprehensive career development platform that provides personalized career insights, industry benchmarks, and AI-generated career advancement plans.
 
 ## Features
 

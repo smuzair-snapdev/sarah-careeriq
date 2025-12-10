@@ -62,6 +62,15 @@ class ProfileBase(BaseModel):
     soft_skills: List[str]
     salary_package: int
     career_progression: List[CareerProgressionItem] = []
+    
+    # New fields for Dev Career IQ
+    country: Optional[str] = None
+    years_experience: Optional[int] = None
+    dev_role: Optional[str] = None
+    languages: List[str] = []
+    databases: List[str] = []
+    platforms: List[str] = []
+    frameworks: List[str] = []
 
 class ProfileCreate(ProfileBase):
     pass
@@ -89,6 +98,24 @@ class ProfileResponse(ProfileBase):
         "arbitrary_types_allowed": True
     }
 # Benchmark & Market Data Models
+
+class SurveyBenchmark(BaseModel):
+    country: str
+    years_experience: float
+    dev_role: str
+    salary: float
+    languages: List[str]
+    databases: List[str]
+    platforms: List[str]
+    frameworks: List[str]
+    source_year: int = 2024 # Default to current survey year
+    
+    model_config = {
+        "populate_by_name": True
+    }
+
+class SurveyBenchmarkInDB(SurveyBenchmark):
+    id: Optional[PyObjectId] = Field(alias="_id", default=None)
 
 class MarketData(BaseModel):
     industry: str

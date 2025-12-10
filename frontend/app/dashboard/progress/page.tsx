@@ -58,15 +58,15 @@ export default function ProgressPage() {
 
   if (loading) {
     return (
-      <>
+      <div className="min-h-screen bg-background">
         <DashboardNav />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center">
-            <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading your progress...</p>
+            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading your progress...</p>
           </div>
         </div>
-      </>
+      </div>
     );
   }
 
@@ -74,13 +74,13 @@ export default function ProgressPage() {
   const activeRecs = plan?.recommendations.filter(r => r.status === 'active') || [];
 
   return (
-    <>
+    <div className="min-h-screen bg-background pb-12">
       <DashboardNav />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8 flex justify-between items-start">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Progress Tracking</h1>
-            <p className="text-gray-600">Monitor your career advancement journey</p>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground mb-1">Progress Tracking</h1>
+            <p className="text-muted-foreground">Monitor your career advancement journey</p>
           </div>
           <Button onClick={handleRefresh} disabled={refreshing} variant="outline">
             {refreshing ? 'Refreshing...' : 'Refresh'}
@@ -89,51 +89,51 @@ export default function ProgressPage() {
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
+          <Card className="shadow-sm">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Total Progress</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total Progress</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-indigo-600">
+              <div className="text-3xl font-bold text-foreground">
                 {plan?.overall_completion_percentage || 0}%
               </div>
-              <p className="text-xs text-gray-500 mt-1">Overall completion</p>
+              <p className="text-xs text-muted-foreground mt-1">Overall completion</p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="shadow-sm">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Completed</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Completed</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-green-600">
+              <div className="text-3xl font-bold text-emerald-600">
                 {completedRecs.length}
               </div>
-              <p className="text-xs text-gray-500 mt-1">Recommendations done</p>
+              <p className="text-xs text-muted-foreground mt-1">Recommendations done</p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="shadow-sm">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">In Progress</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">In Progress</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-blue-600">
                 {activeRecs.length}
               </div>
-              <p className="text-xs text-gray-500 mt-1">Active recommendations</p>
+              <p className="text-xs text-muted-foreground mt-1">Active recommendations</p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="shadow-sm">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Benchmark Reports</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Benchmark Reports</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-indigo-600">
+              <div className="text-3xl font-bold text-foreground">
                 {reports.length}
               </div>
-              <p className="text-xs text-gray-500 mt-1">Reports generated</p>
+              <p className="text-xs text-muted-foreground mt-1">Reports generated</p>
             </CardContent>
           </Card>
         </div>
@@ -146,11 +146,11 @@ export default function ProgressPage() {
           </TabsList>
 
           <TabsContent value="achievements" className="space-y-4">
-            <Card>
+            <Card className="shadow-sm">
               <CardHeader>
-                <CardTitle>🎉 Completed Recommendations</CardTitle>
+                <CardTitle>Completed Recommendations</CardTitle>
                 <CardDescription>
-                  {completedRecs.length === 0 
+                  {completedRecs.length === 0
                     ? 'No completed recommendations yet. Start taking action on your career plan!'
                     : `You've completed ${completedRecs.length} recommendation${completedRecs.length !== 1 ? 's' : ''}. Great progress!`
                   }
@@ -158,8 +158,8 @@ export default function ProgressPage() {
               </CardHeader>
               <CardContent>
                 {completedRecs.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-gray-600 mb-4">Ready to make progress?</p>
+                  <div className="text-center py-12">
+                    <p className="text-muted-foreground mb-4">Ready to make progress?</p>
                     <Button onClick={() => router.push('/dashboard/plan')}>
                       View Career Plan
                     </Button>
@@ -167,28 +167,28 @@ export default function ProgressPage() {
                 ) : (
                   <div className="space-y-3">
                     {completedRecs.map((rec) => (
-                      <div 
+                      <div
                         key={rec.recommendation_id}
-                        className="flex items-start p-4 bg-green-50 border border-green-200 rounded-lg"
+                        className="flex items-start p-4 bg-emerald-50/50 border border-emerald-100 rounded-lg"
                       >
-                        <div className="flex-shrink-0 w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center mr-3">
+                        <div className="flex-shrink-0 w-6 h-6 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mr-3 mt-0.5 text-xs">
                           ✓
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center justify-between mb-1">
-                            <h4 className="font-semibold text-gray-900">{rec.title}</h4>
-                            <Badge variant="outline">{rec.category}</Badge>
+                            <h4 className="font-semibold text-foreground text-sm">{rec.title}</h4>
+                            <Badge variant="outline" className="font-normal">{rec.category}</Badge>
                           </div>
-                          <p className="text-sm text-gray-600 mb-2">{rec.description}</p>
+                          <p className="text-sm text-muted-foreground mb-2">{rec.description}</p>
                           {rec.completed_date && (
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs text-muted-foreground">
                               Completed on {new Date(rec.completed_date).toLocaleDateString()}
                             </p>
                           )}
                           {rec.user_notes && (
-                            <div className="mt-2 p-2 bg-white rounded border border-green-300">
-                              <p className="text-xs font-semibold text-gray-700 mb-1">Your notes:</p>
-                              <p className="text-sm text-gray-600">{rec.user_notes}</p>
+                            <div className="mt-2 p-2 bg-background/50 rounded border border-emerald-100">
+                              <p className="text-xs font-semibold text-foreground mb-1">Your notes:</p>
+                              <p className="text-xs text-muted-foreground">{rec.user_notes}</p>
                             </div>
                           )}
                         </div>
@@ -201,14 +201,14 @@ export default function ProgressPage() {
           </TabsContent>
 
           <TabsContent value="timeline" className="space-y-4">
-            <Card>
+            <Card className="shadow-sm">
               <CardHeader>
-                <CardTitle>📅 Career Journey Timeline</CardTitle>
+                <CardTitle>Career Journey Timeline</CardTitle>
                 <CardDescription>Your career milestones and progress</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="relative">
-                  <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200"></div>
+                  <div className="absolute left-4 top-0 bottom-0 w-px bg-border"></div>
                   
                   <div className="space-y-6">
                     {/* Completed recommendations timeline */}
@@ -220,20 +220,18 @@ export default function ProgressPage() {
                       })
                       .map((rec) => (
                         <div key={rec.recommendation_id} className="relative pl-10">
-                          <div className="absolute left-0 w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center">
-                            ✓
-                          </div>
-                          <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                          <div className="absolute left-[11px] w-3 h-3 bg-emerald-500 rounded-full ring-4 ring-background mt-1.5" />
+                          <div className="bg-card p-4 rounded-lg border shadow-sm">
                             <div className="flex items-center justify-between mb-2">
-                              <h4 className="font-semibold text-gray-900">{rec.title}</h4>
-                              <Badge variant="outline">{rec.category}</Badge>
+                              <h4 className="font-medium text-foreground">{rec.title}</h4>
+                              <Badge variant="secondary" className="font-normal">{rec.category}</Badge>
                             </div>
-                            <p className="text-sm text-gray-600 mb-2">{rec.expected_impact}</p>
-                            <p className="text-xs text-gray-500">
-                              {rec.completed_date && new Date(rec.completed_date).toLocaleDateString('en-US', { 
-                                month: 'long', 
-                                day: 'numeric', 
-                                year: 'numeric' 
+                            <p className="text-sm text-muted-foreground mb-2">{rec.expected_impact}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {rec.completed_date && new Date(rec.completed_date).toLocaleDateString('en-US', {
+                                month: 'long',
+                                day: 'numeric',
+                                year: 'numeric'
                               })}
                             </p>
                           </div>
@@ -243,26 +241,24 @@ export default function ProgressPage() {
                     {/* Benchmark report generations */}
                     {reports.map((report) => (
                       <div key={report.report_id} className="relative pl-10">
-                        <div className="absolute left-0 w-8 h-8 bg-indigo-500 text-white rounded-full flex items-center justify-center text-sm">
-                          📊
-                        </div>
-                        <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-                          <h4 className="font-semibold text-gray-900 mb-2">Benchmark Report Generated</h4>
-                          <div className="grid grid-cols-2 gap-2 text-sm mb-2">
+                        <div className="absolute left-[11px] w-3 h-3 bg-primary rounded-full ring-4 ring-background mt-1.5" />
+                        <div className="bg-card p-4 rounded-lg border shadow-sm">
+                          <h4 className="font-medium text-foreground mb-2">Benchmark Report Generated</h4>
+                          <div className="grid grid-cols-2 gap-4 text-sm mb-2">
                             <div>
-                              <span className="text-gray-600">Compensation:</span>
-                              <span className="ml-1 font-medium">{report.compensation_quartile}th percentile</span>
+                              <span className="text-muted-foreground text-xs block">Compensation</span>
+                              <span className="font-medium text-foreground">{report.compensation_quartile}th percentile</span>
                             </div>
                             <div>
-                              <span className="text-gray-600">Progression:</span>
-                              <span className="ml-1 font-medium">{report.career_progression_score}/100</span>
+                              <span className="text-muted-foreground text-xs block">Progression</span>
+                              <span className="font-medium text-foreground">{report.career_progression_score}/100</span>
                             </div>
                           </div>
-                          <p className="text-xs text-gray-500">
-                            {new Date(report.generation_date).toLocaleDateString('en-US', { 
-                              month: 'long', 
-                              day: 'numeric', 
-                              year: 'numeric' 
+                          <p className="text-xs text-muted-foreground border-t pt-2 mt-2">
+                            {new Date(report.generation_date).toLocaleDateString('en-US', {
+                              month: 'long',
+                              day: 'numeric',
+                              year: 'numeric'
                             })}
                           </p>
                         </div>
@@ -271,7 +267,7 @@ export default function ProgressPage() {
 
                     {completedRecs.length === 0 && reports.length === 0 && (
                       <div className="text-center py-12">
-                        <p className="text-gray-600">Your career journey timeline will appear here as you make progress</p>
+                        <p className="text-muted-foreground">Your career journey timeline will appear here as you make progress</p>
                       </div>
                     )}
                   </div>
@@ -281,15 +277,15 @@ export default function ProgressPage() {
           </TabsContent>
 
           <TabsContent value="reports" className="space-y-4">
-            <Card>
+            <Card className="shadow-sm">
               <CardHeader>
-                <CardTitle>📈 Benchmark Report History</CardTitle>
+                <CardTitle>Benchmark Report History</CardTitle>
                 <CardDescription>Track how your market position has evolved</CardDescription>
               </CardHeader>
               <CardContent>
                 {reports.length === 0 ? (
                   <div className="text-center py-12">
-                    <p className="text-gray-600 mb-4">No benchmark reports yet</p>
+                    <p className="text-muted-foreground mb-4">No benchmark reports yet</p>
                     <Button onClick={() => router.push('/dashboard/benchmark')}>
                       Generate Benchmark Report
                     </Button>
@@ -297,67 +293,67 @@ export default function ProgressPage() {
                 ) : (
                   <div className="space-y-4">
                     {reports.map((report, index) => (
-                      <div 
+                      <div
                         key={report.report_id}
                         className={`p-4 rounded-lg border ${
-                          report.is_current 
-                            ? 'bg-indigo-50 border-indigo-300' 
-                            : 'bg-gray-50 border-gray-200'
+                          report.is_current
+                            ? 'bg-primary/5 border-primary/20'
+                            : 'bg-card border-border'
                         }`}
                       >
-                        <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center justify-between mb-4">
                           <div>
-                            <h4 className="font-semibold text-gray-900">
+                            <h4 className="font-medium text-foreground text-sm">
                               Report #{reports.length - index}
                             </h4>
-                            <p className="text-sm text-gray-600">
-                              {new Date(report.generation_date).toLocaleDateString('en-US', { 
-                                month: 'long', 
-                                day: 'numeric', 
-                                year: 'numeric' 
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {new Date(report.generation_date).toLocaleDateString('en-US', {
+                                month: 'long',
+                                day: 'numeric',
+                                year: 'numeric'
                               })}
                             </p>
                           </div>
                           {report.is_current && (
-                            <Badge className="bg-indigo-600">Current</Badge>
+                            <Badge>Current</Badge>
                           )}
                         </div>
 
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                           <div>
-                            <p className="text-gray-600 mb-1">Compensation</p>
-                            <p className="text-lg font-bold text-gray-900">
+                            <p className="text-muted-foreground text-xs mb-1">Compensation</p>
+                            <p className="text-lg font-bold text-foreground">
                               {report.compensation_quartile}th
                             </p>
-                            <p className="text-xs text-gray-500">percentile</p>
+                            <p className="text-xs text-muted-foreground">percentile</p>
                           </div>
                           <div>
-                            <p className="text-gray-600 mb-1">Progression</p>
-                            <p className="text-lg font-bold text-gray-900">
+                            <p className="text-muted-foreground text-xs mb-1">Progression</p>
+                            <p className="text-lg font-bold text-foreground">
                               {report.career_progression_score}
                             </p>
-                            <p className="text-xs text-gray-500">score</p>
+                            <p className="text-xs text-muted-foreground">score</p>
                           </div>
                           <div>
-                            <p className="text-gray-600 mb-1">Skills</p>
-                            <p className="text-lg font-bold text-gray-900">
+                            <p className="text-muted-foreground text-xs mb-1">Skills</p>
+                            <p className="text-lg font-bold text-foreground">
                               {report.skill_relevance_scores.overall}
                             </p>
-                            <p className="text-xs text-gray-500">relevance</p>
+                            <p className="text-xs text-muted-foreground">relevance</p>
                           </div>
                           <div>
-                            <p className="text-gray-600 mb-1">Position Level</p>
-                            <p className="text-lg font-bold text-gray-900">
+                            <p className="text-muted-foreground text-xs mb-1">Position Level</p>
+                            <p className="text-lg font-bold text-foreground">
                               {report.position_level_score}
                             </p>
-                            <p className="text-xs text-gray-500">score</p>
+                            <p className="text-xs text-muted-foreground">score</p>
                           </div>
                         </div>
 
                         {index > 0 && (
-                          <div className="mt-3 pt-3 border-t border-gray-200">
-                            <p className="text-xs font-semibold text-gray-700 mb-1">Change from previous:</p>
-                            <div className="grid grid-cols-4 gap-2 text-xs">
+                          <div className="mt-4 pt-3 border-t">
+                            <p className="text-xs font-medium text-muted-foreground mb-2">Change from previous:</p>
+                            <div className="grid grid-cols-4 gap-4 text-xs">
                               <div className={getChangeColor(report.compensation_quartile - reports[index - 1].compensation_quartile)}>
                                 {getChangeText(report.compensation_quartile - reports[index - 1].compensation_quartile)}
                               </div>
@@ -382,14 +378,14 @@ export default function ProgressPage() {
           </TabsContent>
         </Tabs>
       </div>
-    </>
+    </div>
   );
 }
 
 function getChangeColor(change: number): string {
-  if (change > 0) return 'text-green-600 font-semibold';
-  if (change < 0) return 'text-red-600 font-semibold';
-  return 'text-gray-600';
+  if (change > 0) return 'text-emerald-600 font-medium';
+  if (change < 0) return 'text-red-600 font-medium';
+  return 'text-muted-foreground';
 }
 
 function getChangeText(change: number): string {

@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CareerIQ - Career Intelligence Platform",
+  title: "DevCareerIQ - Developer Career Intelligence Platform",
   description: "Data-driven career advancement for mid-career professionals",
 };
 

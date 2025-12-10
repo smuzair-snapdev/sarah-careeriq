@@ -37,7 +37,7 @@ export function exportBenchmarkToPDF(benchmark: BenchmarkData, userName: string)
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(24);
   doc.setFont('helvetica', 'bold');
-  doc.text('CareerIQ Benchmark Report', pageWidth / 2, 20, { align: 'center' });
+  doc.text('DevCareerIQ Benchmark Report', pageWidth / 2, 20, { align: 'center' });
   
   doc.setFontSize(12);
   doc.setFont('helvetica', 'normal');
@@ -139,7 +139,7 @@ export function exportBenchmarkToPDF(benchmark: BenchmarkData, userName: string)
     doc.setFontSize(8);
     doc.setTextColor(128, 128, 128);
     doc.text(
-      `Page ${i} of ${pageCount} | CareerIQ © ${new Date().getFullYear()}`,
+      `Page ${i} of ${pageCount} | DevCareerIQ © ${new Date().getFullYear()}`,
       pageWidth / 2,
       doc.internal.pageSize.getHeight() - 10,
       { align: 'center' }
@@ -147,7 +147,7 @@ export function exportBenchmarkToPDF(benchmark: BenchmarkData, userName: string)
   }
   
   // Save
-  const fileName = `CareerIQ_Benchmark_${benchmark.industry_name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+  const fileName = `DevCareerIQ_Benchmark_${benchmark.industry_name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
   doc.save(fileName);
 }
 
@@ -162,7 +162,7 @@ export function exportCareerPlanToPDF(plan: CareerPlan, userName: string, indust
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(24);
   doc.setFont('helvetica', 'bold');
-  doc.text('CareerIQ Career Plan', pageWidth / 2, 20, { align: 'center' });
+  doc.text('DevCareerIQ Career Plan', pageWidth / 2, 20, { align: 'center' });
   
   doc.setFontSize(12);
   doc.setFont('helvetica', 'normal');
@@ -300,7 +300,7 @@ export function exportCareerPlanToPDF(plan: CareerPlan, userName: string, indust
     doc.setFontSize(8);
     doc.setTextColor(128, 128, 128);
     doc.text(
-      `Page ${i} of ${pageCount} | CareerIQ © ${new Date().getFullYear()}`,
+      `Page ${i} of ${pageCount} | DevCareerIQ © ${new Date().getFullYear()}`,
       pageWidth / 2,
       doc.internal.pageSize.getHeight() - 10,
       { align: 'center' }
@@ -308,6 +308,6 @@ export function exportCareerPlanToPDF(plan: CareerPlan, userName: string, indust
   }
   
   // Save
-  const fileName = `CareerIQ_Plan_${industry.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+  const fileName = `DevCareerIQ_Plan_${industry.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
   doc.save(fileName);
 }
